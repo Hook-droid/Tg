@@ -13,20 +13,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
-      - name: Maksimum disk temizligi
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: false
+      - name: Maksimum disk temizligi (AGRESIF)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /usr/local/.ghcup
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/julia*
+          sudo rm -rf /usr/lib/jvm
+          df -h
 
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 1
 
       - name: JDK 17 kur
         uses: actions/setup-java@v4
@@ -37,9 +40,12 @@ jobs:
       - name: Android SDK kur
         uses: android-actions/setup-android@v3
 
-      - name: NDK kur
+      - name: NDK kur (sadece gerekli)
         run: |
           yes | sdkmanager "ndk;21.4.7075529" "cmake;3.22.1" || true
+
+      - name: Disk durumu kontrol
+        run: df -h
 
       - name: Swap alani buyut (RAM takviyesi)
         run: |
@@ -60,15 +66,15 @@ jobs:
       - name: gradlew calistirilabilir yap
         run: chmod +x gradlew
 
-      - name: APK derle (debug - daha hafif)
-        run: ./gradlew assembleAfatStandaloneDebug --stacktrace --no-daemon --max-workers=1 || ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=1
+      - name: APK derle
+        run: ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=1
 
       - name: APK bul
         id: apk
         run: |
           APK=$(find . -name "*.apk" | head -1)
           echo "path=$APK" >> "$GITHUB_OUTPUT"
-          find . -name "*.apk"
+          echo "Bulunan APK: $APK"
 
       - name: Surum
         id: version
