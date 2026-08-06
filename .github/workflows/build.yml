@@ -1,0 +1,57 @@
+name: Build LyrxGram
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: NDK kur
+        run: |
+          yes | sdkmanager "ndk;21.4.7075529" "cmake;3.22.1" || true
+
+      - name: gradlew calistirilabilir yap
+        run: chmod +x gradlew
+
+      - name: APK derle (dummy degerlerle test)
+        run: ./gradlew assembleAfatStandalone --stacktrace || ./gradlew assembleRelease --stacktrace || ./gradlew assembleDebug --stacktrace
+
+      - name: APK bul
+        id: apk
+        run: |
+          APK=$(find . -name "*.apk" | head -1)
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "Bulunan APK: $APK"
+          find . -name "*.apk"
+
+      - name: Surum
+        id: version
+        run: echo "tag=lyrx-$(date +%Y%m%d-%H%M%S)" >> "$GITHUB_OUTPUT"
+
+      - name: Release olustur
+        if: steps.apk.outputs.path != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: LyrxGram ${{ steps.version.outputs.tag }}
+          files: ${{ steps.apk.outputs.path }}
+          generate_release_notes: false
