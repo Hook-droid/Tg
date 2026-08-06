@@ -12,6 +12,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Disk temizle (yer ac)
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android/sdk/ndk
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/lib/node_modules
+          sudo rm -rf /usr/share/swift
+          sudo docker image prune --all --force || true
+          df -h
+
       - uses: actions/checkout@v4
         with:
           submodules: recursive
@@ -29,18 +41,23 @@ jobs:
         run: |
           yes | sdkmanager "ndk;21.4.7075529" "cmake;3.22.1" || true
 
+      - name: Tek mimari (arm64) ayarla
+        run: |
+          echo "APP_ABIS=arm64-v8a" >> gradle.properties || true
+          echo "org.gradle.jvmargs=-Xmx5120m -XX:MaxMetaspaceSize=1g" >> gradle.properties
+
       - name: gradlew calistirilabilir yap
         run: chmod +x gradlew
 
-      - name: APK derle (dummy degerlerle test)
-        run: ./gradlew assembleAfatStandalone --stacktrace || ./gradlew assembleRelease --stacktrace || ./gradlew assembleDebug --stacktrace
+      - name: APK derle
+        run: ./gradlew assembleAfatStandalone --stacktrace --no-daemon || ./gradlew assembleRelease --stacktrace --no-daemon
 
       - name: APK bul
         id: apk
         run: |
           APK=$(find . -name "*.apk" | head -1)
           echo "path=$APK" >> "$GITHUB_OUTPUT"
-          echo "Bulunan APK: $APK"
+          echo "Bulunan: $APK"
           find . -name "*.apk"
 
       - name: Surum
