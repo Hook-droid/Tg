@@ -11,6 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - name: Maksimum disk temizligi
         uses: jlumbroso/free-disk-space@main
@@ -21,7 +22,7 @@ jobs:
           haskell: true
           large-packages: true
           docker-images: true
-          swap-storage: true
+          swap-storage: false
 
       - uses: actions/checkout@v4
         with:
@@ -40,17 +41,27 @@ jobs:
         run: |
           yes | sdkmanager "ndk;21.4.7075529" "cmake;3.22.1" || true
 
-      - name: Sadece arm64 derle (yer tasarrufu)
+      - name: Swap alani buyut (RAM takviyesi)
+        run: |
+          sudo fallocate -l 12G /swapfile2 || sudo dd if=/dev/zero of=/swapfile2 bs=1M count=12288
+          sudo chmod 600 /swapfile2
+          sudo mkswap /swapfile2
+          sudo swapon /swapfile2
+          free -h
+
+      - name: Sadece arm64 + tek is parcacigi
         run: |
           sed -i "/defaultConfig {/a\\        ndk { abiFilters 'arm64-v8a' }" TMessagesProj/build.gradle
-          echo "org.gradle.jvmargs=-Xmx5g -XX:MaxMetaspaceSize=1g" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" >> gradle.properties
           echo "org.gradle.daemon=false" >> gradle.properties
+          echo "org.gradle.parallel=false" >> gradle.properties
+          echo "org.gradle.workers.max=1" >> gradle.properties
 
       - name: gradlew calistirilabilir yap
         run: chmod +x gradlew
 
-      - name: APK derle
-        run: ./gradlew assembleAfatStandalone --stacktrace --no-daemon || ./gradlew assembleRelease --stacktrace --no-daemon
+      - name: APK derle (debug - daha hafif)
+        run: ./gradlew assembleAfatStandaloneDebug --stacktrace --no-daemon --max-workers=1 || ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=1
 
       - name: APK bul
         id: apk
