@@ -110,6 +110,7 @@ android {
 
 
     defaultConfig {
+        applicationId 'com.lyrx.gram'
         minSdkVersion 21
         targetSdkVersion 35
 
