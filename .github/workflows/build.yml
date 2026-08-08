@@ -49,13 +49,45 @@ jobs:
           source $HOME/.bashrc
           export ANDROID_HOME=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin
-          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;30.0.3" || true
+          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-35" "build-tools;35.0.0" || true
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "PATH=$PATH" >> $GITHUB_ENV
 
       - name: NDK kur
         run: |
           $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "ndk;21.4.7075529" "cmake;3.22.1" || true
+
+      - name: Logo otomatik boyutlandir (app_logo.png'den)
+        run: |
+          python3 -m pip install --quiet Pillow
+          python3 << 'PYEOF'
+          from PIL import Image
+          import os
+
+          src = Image.open('app_logo.png').convert('RGBA')
+
+          sizes = {
+              'mipmap-mdpi': 48,
+              'mipmap-hdpi': 72,
+              'mipmap-xhdpi': 96,
+              'mipmap-xxhdpi': 144,
+              'mipmap-xxxhdpi': 192,
+          }
+
+          base = 'TMessagesProj/src/main/res'
+          for folder, size in sizes.items():
+              path = os.path.join(base, folder)
+              resized = src.resize((size, size), Image.LANCZOS)
+              resized.save(os.path.join(path, 'ic_launcher.png'))
+              resized.save(os.path.join(path, 'ic_launcher_round.png'))
+              fg = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+              inner = src.resize((int(size * 0.65), int(size * 0.65)), Image.LANCZOS)
+              off = (size - inner.width) // 2
+              fg.paste(inner, (off, off), inner)
+              fg.save(os.path.join(path, 'icon_foreground.png'))
+              print(f'{folder}: {size}x{size} OK')
+          print('Tum ikonlar olusturuldu')
+          PYEOF
 
       - name: Disk durumu kontrol
         run: df -h
