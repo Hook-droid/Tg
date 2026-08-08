@@ -115,13 +115,20 @@ jobs:
                           print('atlandi', f, e)
               print('Arka plan renkleri koyu mora cevrildi')
 
-          strings_path = os.path.join(base, 'values', 'strings.xml')
-          if os.path.isfile(strings_path):
-              s = open(strings_path, encoding='utf-8').read()
-              s = s.replace('<string name="Page1Title">Telegram</string>',
-                            '<string name="Page1Title">LyrxGram</string>')
-              open(strings_path, 'w', encoding='utf-8').write(s)
-              print('Intro yazisi LyrxGram yapildi')
+          for root, dirs, files in os.walk(base):
+              for fn in files:
+                  if fn == 'strings.xml':
+                      fp = os.path.join(root, fn)
+                      try:
+                          s = open(fp, encoding='utf-8').read()
+                          s = re.sub(r'(<string name="Page1Title">)[^<]*(</string>)',
+                                     r'\g<1>LyrxGram\g<2>', s)
+                          s = re.sub(r'(<string name="AppName">)[^<]*(</string>)',
+                                     r'\g<1>LyrxGram\g<2>', s)
+                          open(fp, 'w', encoding='utf-8').write(s)
+                      except Exception as e:
+                          print('atlandi', fp, e)
+          print('Tum dillerde Page1Title ve AppName LyrxGram yapildi')
           PYEOF
 
       - name: Swap alani buyut
