@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
-      - name: Maksimum disk temizligi (AGRESIF)
+      - name: Maksimum disk temizligi
         run: |
           sudo rm -rf /usr/share/dotnet
           sudo rm -rf /usr/local/lib/android
@@ -37,16 +37,13 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Android SDK kur (manuel - home dizinine)
+      - name: Android SDK kur
         run: |
           mkdir -p $HOME/android-sdk
           cd $HOME/android-sdk
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-12266719_latest.zip
           unzip -q commandlinetools-linux-12266719_latest.zip
           rm commandlinetools-linux-12266719_latest.zip
-          echo "export ANDROID_HOME=$HOME/android-sdk" >> $HOME/.bashrc
-          echo "export PATH=\$PATH:\$ANDROID_HOME/cmdline-tools/bin" >> $HOME/.bashrc
-          source $HOME/.bashrc
           export ANDROID_HOME=$HOME/android-sdk
           export PATH=$PATH:$ANDROID_HOME/cmdline-tools/bin
           yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-35" "build-tools;35.0.0" || true
@@ -57,7 +54,7 @@ jobs:
         run: |
           $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "ndk;21.4.7075529" "cmake;3.22.1" || true
 
-      - name: Logo otomatik boyutlandir (app_logo.png'den)
+      - name: Logo otomatik boyutlandir
         run: |
           python3 -m pip install --quiet Pillow
           python3 << 'PYEOF'
@@ -75,24 +72,47 @@ jobs:
           }
 
           base = 'TMessagesProj/src/main/res'
+
+          launcher_names = [
+              'ic_launcher', 'icon_2_launcher', 'icon_3_launcher',
+              'icon_4_launcher', 'icon_5_launcher', 'icon_6_launcher',
+          ]
+          foreground_names = [
+              'icon_foreground', 'icon_3_foreground', 'icon_5_foreground',
+              'icon_6_foreground',
+          ]
+
           for folder, size in sizes.items():
               path = os.path.join(base, folder)
-              resized = src.resize((size, size), Image.LANCZOS)
-              resized.save(os.path.join(path, 'ic_launcher.png'))
-              resized.save(os.path.join(path, 'ic_launcher_round.png'))
+              if not os.path.isdir(path):
+                  continue
+              full = src.resize((size, size), Image.LANCZOS)
+
+              for name in launcher_names:
+                  full.save(os.path.join(path, f'{name}.png'))
+                  full.save(os.path.join(path, f'{name}_round.png'))
+
               fg = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-              inner = src.resize((int(size * 0.65), int(size * 0.65)), Image.LANCZOS)
-              off = (size - inner.width) // 2
+              inner = src.resize((int(size*0.62), int(size*0.62)), Image.LANCZOS)
+              off = (size - inner.width)//2
               fg.paste(inner, (off, off), inner)
-              fg.save(os.path.join(path, 'icon_foreground.png'))
+              for name in foreground_names:
+                  fg.save(os.path.join(path, f'{name}.png'))
+                  fg.save(os.path.join(path, f'{name}_round.png'))
+                  fg.save(os.path.join(path, f'{name}_sa.png'))
+
               print(f'{folder}: {size}x{size} OK')
-          print('Tum ikonlar olusturuldu')
+          print('Tum ikon setleri guncellendi')
+
+          anydpi = os.path.join(base, 'mipmap-anydpi-v26')
+          if os.path.isdir(anydpi):
+              for f in os.listdir(anydpi):
+                  if f.endswith('.xml'):
+                      os.remove(os.path.join(anydpi, f))
+              print('Adaptive xml silindi')
           PYEOF
 
-      - name: Disk durumu kontrol
-        run: df -h
-
-      - name: Swap alani buyut (RAM takviyesi)
+      - name: Swap alani buyut
         run: |
           sudo fallocate -l 12G /swapfile2 || sudo dd if=/dev/zero of=/swapfile2 bs=1M count=12288
           sudo chmod 600 /swapfile2
