@@ -54,7 +54,7 @@ jobs:
         run: |
           $ANDROID_HOME/cmdline-tools/bin/sdkmanager --sdk_root=$ANDROID_HOME "ndk;21.4.7075529" "cmake;3.22.1" || true
 
-      - name: Logo ve arka plan ayarla
+      - name: Logo arka plan ve isim ayarla
         run: |
           python3 -m pip install --quiet Pillow
           python3 << 'PYEOF'
@@ -114,6 +114,14 @@ jobs:
                       except Exception as e:
                           print('atlandi', f, e)
               print('Arka plan renkleri koyu mora cevrildi')
+
+          strings_path = os.path.join(base, 'values', 'strings.xml')
+          if os.path.isfile(strings_path):
+              s = open(strings_path, encoding='utf-8').read()
+              s = s.replace('<string name="Page1Title">Telegram</string>',
+                            '<string name="Page1Title">LyrxGram</string>')
+              open(strings_path, 'w', encoding='utf-8').write(s)
+              print('Intro yazisi LyrxGram yapildi')
           PYEOF
 
       - name: Swap alani buyut
