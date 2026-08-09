@@ -172,6 +172,7 @@ import org.telegram.ui.Components.FragmentFloatingButton;
 import org.telegram.ui.Components.ImageUpdater;
 import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Switch;
 import org.telegram.ui.Components.LinkPath;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.LoadingDrawable;
@@ -1961,6 +1962,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private TextViewSwitcher countryButton;
         private OutlineTextContainerView countryOutlineView;
         private OutlineTextContainerView phoneOutlineView;
+        private TextView proxyStatusView;
+        private Switch proxySwitch;
         private TextView plusTextView;
         private LinkSpanDrawable.LinksTextView subtitleView;
         private View codeDividerView;
@@ -2107,6 +2110,56 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             phoneOutlineView.addView(linearLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL, 16, 8, 16, 8));
             phoneOutlineView.setText(getString(R.string.PhoneNumber));
             addView(phoneOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 58, 16, 8, 16, 8));
+
+            // === LyrxGram Free Proxy karti (ADIM 1: sadece arayuz) ===
+            FrameLayout proxyCard = new FrameLayout(context);
+            android.graphics.drawable.GradientDrawable proxyCardBg = new android.graphics.drawable.GradientDrawable();
+            proxyCardBg.setColor(0xFF1C1C1E);
+            proxyCardBg.setCornerRadius(dp(18));
+            proxyCard.setBackground(proxyCardBg);
+
+            FrameLayout proxyIconBg = new FrameLayout(context);
+            android.graphics.drawable.GradientDrawable proxyIconBgD = new android.graphics.drawable.GradientDrawable();
+            proxyIconBgD.setColor(0xFF2C2C2E);
+            proxyIconBgD.setCornerRadius(dp(12));
+            proxyIconBg.setBackground(proxyIconBgD);
+            ImageView proxyIcon = new ImageView(context);
+            proxyIcon.setImageResource(R.drawable.msg_forward);
+            proxyIcon.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
+            proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+            proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
+
+            LinearLayout proxyTextCol = new LinearLayout(context);
+            proxyTextCol.setOrientation(LinearLayout.VERTICAL);
+
+            TextView proxyTitle = new TextView(context);
+            proxyTitle.setText("Free Proxy");
+            proxyTitle.setTextColor(0xFFFFFFFF);
+            proxyTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+            proxyTitle.setTypeface(AndroidUtilities.bold());
+            proxyTextCol.addView(proxyTitle, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+            TextView proxyDesc = new TextView(context);
+            proxyDesc.setText("Wait 10-20 seconds to connect");
+            proxyDesc.setTextColor(0xFF8E8E93);
+            proxyDesc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            proxyTextCol.addView(proxyDesc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
+
+            proxyStatusView = new TextView(context);
+            proxyStatusView.setText("Inactive");
+            proxyStatusView.setTextColor(0xFF8E8E93);
+            proxyStatusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            proxyStatusView.setTypeface(AndroidUtilities.bold());
+            proxyTextCol.addView(proxyStatusView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
+
+            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 12, 70, 12));
+
+            proxySwitch = new Switch(context);
+            proxySwitch.setColors(0xFF8E8E93, 0xFFFFFFFF, 0xFF2C2C2E, 0xFFFFFFFF);
+            proxyCard.addView(proxySwitch, LayoutHelper.createFrame(37, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+
+            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 76, 16, 12, 16, 0));
+            // === Free Proxy karti sonu ===
 
             plusTextView = new TextView(context);
             plusTextView.setText("+");
