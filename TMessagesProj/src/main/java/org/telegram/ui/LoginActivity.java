@@ -1964,6 +1964,112 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private OutlineTextContainerView phoneOutlineView;
         private TextView proxyStatusView;
         private Switch proxySwitch;
+        private boolean proxyConnecting = false;
+        private int proxyDotCount = 0;
+        private Runnable proxyDotRunnable;
+        private SharedConfig.ProxyInfo activeProxyInfo;
+
+        private void startProxyConnection() {
+            proxyConnecting = true;
+            proxyStatusView.setTextColor(0xFFFFB020);
+            startProxyDots();
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL("https://raw.githubusercontent.com/SoliSpirit/mtproto/main/all_proxies.txt");
+                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setConnectTimeout(8000);
+                    conn.setReadTimeout(8000);
+                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                    String line;
+                    String server = null; int port = 0; String secret = null;
+                    while ((line = br.readLine()) != null) {
+                        line = line.trim();
+                        if (line.contains("server=") && line.contains("port=") && line.contains("secret=")) {
+                            try {
+                                server = line.substring(line.indexOf("server=") + 7);
+                                server = server.substring(0, server.indexOf("&"));
+                                String portStr = line.substring(line.indexOf("port=") + 5);
+                                portStr = portStr.substring(0, portStr.indexOf("&"));
+                                port = Integer.parseInt(portStr);
+                                secret = line.substring(line.indexOf("secret=") + 7);
+                                int amp = secret.indexOf("&");
+                                if (amp > 0) secret = secret.substring(0, amp);
+                                break;
+                            } catch (Exception ignore) {}
+                        }
+                    }
+                    br.close();
+                    final String fServer = server; final int fPort = port; final String fSecret = secret;
+                    AndroidUtilities.runOnUIThread(() -> connectToProxy(fServer, fPort, fSecret));
+                } catch (Exception e) {
+                    AndroidUtilities.runOnUIThread(() -> proxyFailed());
+                }
+            }).start();
+        }
+
+        private void connectToProxy(String server, int port, String secret) {
+            if (server == null || secret == null || port == 0) {
+                proxyFailed();
+                return;
+            }
+            activeProxyInfo = new SharedConfig.ProxyInfo(server, port, "", "", secret);
+            SharedConfig.addProxy(activeProxyInfo);
+            SharedConfig.currentProxy = activeProxyInfo;
+            SharedPreferences pref = MessagesController.getGlobalMainSettings();
+            pref.edit().putBoolean("proxy_enabled", true).commit();
+            ConnectionsManager.setProxySettings(true, server, port, "", "", secret);
+            ConnectionsManager.getInstance(currentAccount).checkProxy(server, port, "", "", secret, time -> AndroidUtilities.runOnUIThread(() -> {
+                stopProxyDots();
+                proxyConnecting = false;
+                if (time < 0) {
+                    proxyFailed();
+                } else {
+                    proxyStatusView.setTextColor(0xFF4CD964);
+                    proxyStatusView.setText("Connected (ms:" + time + ")");
+                }
+            }));
+        }
+
+        private void proxyFailed() {
+            stopProxyDots();
+            proxyConnecting = false;
+            proxyStatusView.setTextColor(0xFFFF3B30);
+            proxyStatusView.setText("Failed, try again");
+            proxySwitch.setChecked(false, true);
+        }
+
+        private void stopProxyConnection() {
+            stopProxyDots();
+            proxyConnecting = false;
+            SharedPreferences pref = MessagesController.getGlobalMainSettings();
+            pref.edit().putBoolean("proxy_enabled", false).commit();
+            ConnectionsManager.setProxySettings(false, "", 0, "", "", "");
+            proxyStatusView.setTextColor(0xFF8E8E93);
+            proxyStatusView.setText("Inactive");
+        }
+
+        private void startProxyDots() {
+            proxyDotCount = 0;
+            proxyDotRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (!proxyConnecting) return;
+                    proxyDotCount = (proxyDotCount % 3) + 1;
+                    StringBuilder dots = new StringBuilder("Connecting");
+                    for (int i = 0; i < proxyDotCount; i++) dots.append(".");
+                    proxyStatusView.setText(dots.toString());
+                    AndroidUtilities.runOnUIThread(this, 400);
+                }
+            };
+            AndroidUtilities.runOnUIThread(proxyDotRunnable, 100);
+        }
+
+        private void stopProxyDots() {
+            if (proxyDotRunnable != null) {
+                AndroidUtilities.cancelRunOnUIThread(proxyDotRunnable);
+                proxyDotRunnable = null;
+            }
+        }
         private TextView plusTextView;
         private LinkSpanDrawable.LinksTextView subtitleView;
         private View codeDividerView;
@@ -2159,6 +2265,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyCard.addView(proxySwitch, LayoutHelper.createFrame(37, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
             addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 76, 16, 12, 16, 0));
+
+            proxySwitch.setOnCheckedChangeListener((view, isChecked) -> {
+                if (isChecked) {
+                    startProxyConnection();
+                } else {
+                    stopProxyConnection();
+                }
+            });
             // === Free Proxy karti sonu ===
 
             plusTextView = new TextView(context);
