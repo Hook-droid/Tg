@@ -2294,16 +2294,17 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             android.graphics.drawable.GradientDrawable proxyCardBg = new android.graphics.drawable.GradientDrawable();
             proxyCardBg.setColor(0xFF1C1C1E);
             proxyCardBg.setCornerRadius(dp(18));
-            proxyCardBg.setStroke(dp(1), 0x33FFFFFF);
+            proxyCardBg.setStroke(dp(1), 0x66808080);
             proxyCard.setBackground(proxyCardBg);
 
             FrameLayout proxyIconBg = new FrameLayout(context);
             android.graphics.drawable.GradientDrawable proxyIconBgD = new android.graphics.drawable.GradientDrawable();
             proxyIconBgD.setColor(0xFF2C2C2E);
             proxyIconBgD.setCornerRadius(dp(12));
+            proxyIconBgD.setStroke(dp(1), 0x66808080);
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
-            proxyIcon.setImageResource(R.drawable.msg_copy);
+            proxyIcon.setImageResource(R.drawable.msg_msgbubble3);
             proxyIcon.setColorFilter(0xFFFFFFFF);
             proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
