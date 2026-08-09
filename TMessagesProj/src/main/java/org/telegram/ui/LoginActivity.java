@@ -2293,20 +2293,20 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             FrameLayout proxyCard = new FrameLayout(context);
             android.graphics.drawable.GradientDrawable proxyCardBg = new android.graphics.drawable.GradientDrawable();
             proxyCardBg.setColor(0xFF1C1C1E);
-            proxyCardBg.setCornerRadius(dp(18));
-            proxyCardBg.setStroke(dp(1), 0x66808080);
+            proxyCardBg.setCornerRadius(dp(24));
+            proxyCardBg.setStroke(dp(1), 0x40FFFFFF);
             proxyCard.setBackground(proxyCardBg);
 
             FrameLayout proxyIconBg = new FrameLayout(context);
             android.graphics.drawable.GradientDrawable proxyIconBgD = new android.graphics.drawable.GradientDrawable();
             proxyIconBgD.setColor(0xFF2C2C2E);
-            proxyIconBgD.setCornerRadius(dp(12));
-            proxyIconBgD.setStroke(dp(1), 0x66808080);
+            proxyIconBgD.setCornerRadius(dp(16));
+            proxyIconBgD.setStroke(dp(1), 0x40FFFFFF);
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
-            proxyIcon.setImageResource(R.drawable.msg_msgbubble3);
+            proxyIcon.setImageResource(R.drawable.menu_privacy_policy);
             proxyIcon.setColorFilter(0xFFFFFFFF);
-            proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+            proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(28, 28, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
 
             LinearLayout proxyTextCol = new LinearLayout(context);
@@ -2338,7 +2338,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             updateProxySwitchColors(false);
             proxyCard.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 92, 16, 12, 16, 0));
+            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 80, 16, 12, 16, 0));
 
             proxySwitch.setOnCheckedChangeListener((view, isChecked) -> {
                 updateProxySwitchColors(isChecked);
