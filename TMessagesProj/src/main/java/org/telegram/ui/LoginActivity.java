@@ -1967,6 +1967,38 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private int proxyDotCount = 0;
         private Runnable proxyDotRunnable;
         private SharedConfig.ProxyInfo activeProxyInfo;
+        private Runnable proxyPingRunnable;
+        private String liveProxyServer;
+        private int liveProxyPort;
+        private String liveProxySecret;
+
+        private void startLivePing() {
+            stopLivePing();
+            proxyPingRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    if (activeProxyInfo == null || liveProxyServer == null) return;
+                    ConnectionsManager.getInstance(currentAccount).checkProxy(liveProxyServer, liveProxyPort, "", "", liveProxySecret, time -> AndroidUtilities.runOnUIThread(() -> {
+                        if (activeProxyInfo == null) return;
+                        if (time >= 0) {
+                            proxyStatusView.setTextColor(0xFF4CD964);
+                            proxyStatusView.setText("Active (" + time + " ms)");
+                        }
+                        if (proxyPingRunnable != null) {
+                            AndroidUtilities.runOnUIThread(proxyPingRunnable, 1000);
+                        }
+                    }));
+                }
+            };
+            AndroidUtilities.runOnUIThread(proxyPingRunnable, 1000);
+        }
+
+        private void stopLivePing() {
+            if (proxyPingRunnable != null) {
+                AndroidUtilities.cancelRunOnUIThread(proxyPingRunnable);
+                proxyPingRunnable = null;
+            }
+        }
 
         private void updateProxySwitchColors(boolean on) {
             int thumb = on ? 0xFF3390EC : 0xFFE84B4B;
@@ -2059,6 +2091,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     proxyConnecting = false;
                     proxyStatusView.setTextColor(0xFF4CD964);
                     proxyStatusView.setText("Active (" + time + " ms)");
+                    liveProxyServer = server;
+                    liveProxyPort = port;
+                    liveProxySecret = secret;
+                    startLivePing();
                 }
             }));
         }
@@ -2073,6 +2109,9 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
         private void stopProxyConnection() {
             stopProxyDots();
+            stopLivePing();
+            activeProxyInfo = null;
+            liveProxyServer = null;
             proxyConnecting = false;
             SharedPreferences pref = MessagesController.getGlobalMainSettings();
             pref.edit().putBoolean("proxy_enabled", false).commit();
@@ -2255,6 +2294,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             android.graphics.drawable.GradientDrawable proxyCardBg = new android.graphics.drawable.GradientDrawable();
             proxyCardBg.setColor(0xFF1C1C1E);
             proxyCardBg.setCornerRadius(dp(18));
+            proxyCardBg.setStroke(dp(1), 0x33FFFFFF);
             proxyCard.setBackground(proxyCardBg);
 
             FrameLayout proxyIconBg = new FrameLayout(context);
@@ -2263,7 +2303,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyIconBgD.setCornerRadius(dp(12));
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
-            proxyIcon.setImageResource(R.drawable.proxy_check);
+            proxyIcon.setImageResource(R.drawable.msg_copy);
             proxyIcon.setColorFilter(0xFFFFFFFF);
             proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
@@ -2279,7 +2319,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyTextCol.addView(proxyTitle, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
             TextView proxyDesc = new TextView(context);
-            proxyDesc.setText("Wait 10-20 seconds to connect");
+            proxyDesc.setText("Wait 5-10 Seconds To Connect");
             proxyDesc.setTextColor(0xFF8E8E93);
             proxyDesc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
             proxyTextCol.addView(proxyDesc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
