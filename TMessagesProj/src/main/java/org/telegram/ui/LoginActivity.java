@@ -1975,73 +1975,88 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxySwitch.setTrackTintList(android.content.res.ColorStateList.valueOf(track));
         }
 
+        private java.util.ArrayList<String[]> proxyCandidates;
+        private int proxyTryIndex = 0;
+
         private void startProxyConnection() {
             proxyConnecting = true;
             proxyStatusView.setTextColor(0xFFFFB020);
             startProxyDots();
             new Thread(() -> {
-                try {
-                    java.net.URL url = new java.net.URL("https://raw.githubusercontent.com/SoliSpirit/mtproto/main/all_proxies.txt");
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                    conn.setConnectTimeout(8000);
-                    conn.setReadTimeout(8000);
-                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
-                    String line;
-                    java.util.ArrayList<String[]> proxyList = new java.util.ArrayList<>();
-                    while ((line = br.readLine()) != null) {
-                        line = line.trim();
-                        if (line.contains("server=") && line.contains("port=") && line.contains("secret=")) {
-                            try {
-                                String srv = line.substring(line.indexOf("server=") + 7);
-                                srv = srv.substring(0, srv.indexOf("&"));
-                                String portStr = line.substring(line.indexOf("port=") + 5);
-                                portStr = portStr.substring(0, portStr.indexOf("&"));
-                                String sec = line.substring(line.indexOf("secret=") + 7);
-                                int amp = sec.indexOf("&");
-                                if (amp > 0) sec = sec.substring(0, amp);
-                                sec = sec.replace("%3D", "").replace("%3d", "").replace("=", "").trim();
-                                srv = srv.trim();
-                                if (srv.endsWith(".")) srv = srv.substring(0, srv.length() - 1);
-                                int p = Integer.parseInt(portStr.trim());
-                                if (srv.length() > 0 && sec.length() > 0) {
-                                    proxyList.add(new String[]{srv, String.valueOf(p), sec});
-                                }
-                            } catch (Exception ignore) {}
+                java.util.ArrayList<String[]> list = new java.util.ArrayList<>();
+                String[] urls = new String[]{
+                    "https://raw.githubusercontent.com/SoliSpirit/mtproto/master/all_proxies.txt",
+                    "https://raw.githubusercontent.com/SoliSpirit/mtproto/main/all_proxies.txt"
+                };
+                for (String u : urls) {
+                    if (!list.isEmpty()) break;
+                    try {
+                        java.net.URL url = new java.net.URL(u);
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setConnectTimeout(8000);
+                        conn.setReadTimeout(8000);
+                        java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            line = line.trim();
+                            if (line.contains("server=") && line.contains("port=") && line.contains("secret=")) {
+                                try {
+                                    String srv = line.substring(line.indexOf("server=") + 7);
+                                    srv = srv.substring(0, srv.indexOf("&"));
+                                    String portStr = line.substring(line.indexOf("port=") + 5);
+                                    portStr = portStr.substring(0, portStr.indexOf("&"));
+                                    String sec = line.substring(line.indexOf("secret=") + 7);
+                                    int amp = sec.indexOf("&");
+                                    if (amp > 0) sec = sec.substring(0, amp);
+                                    sec = sec.replace("%3D", "").replace("%3d", "").replace("=", "").trim();
+                                    srv = srv.trim();
+                                    if (srv.endsWith(".")) srv = srv.substring(0, srv.length() - 1);
+                                    int p = Integer.parseInt(portStr.trim());
+                                    if (srv.length() > 0 && sec.length() > 0) {
+                                        list.add(new String[]{srv, String.valueOf(p), sec});
+                                    }
+                                } catch (Exception ignore) {}
+                            }
                         }
-                    }
-                    br.close();
-                    String server = null; int port = 0; String secret = null;
-                    if (!proxyList.isEmpty()) {
-                        String[] chosen = proxyList.get(0);
-                        server = chosen[0];
-                        port = Integer.parseInt(chosen[1]);
-                        secret = chosen[2];
-                    }
-                    final String fServer = server; final int fPort = port; final String fSecret = secret;
-                    AndroidUtilities.runOnUIThread(() -> connectToProxy(fServer, fPort, fSecret));
-                } catch (Exception e) {
-                    AndroidUtilities.runOnUIThread(() -> proxyFailed());
+                        br.close();
+                    } catch (Exception ignore) {}
                 }
+                AndroidUtilities.runOnUIThread(() -> {
+                    if (list.isEmpty()) {
+                        proxyFailed();
+                    } else {
+                        proxyCandidates = list;
+                        proxyTryIndex = 0;
+                        tryNextProxy();
+                    }
+                });
             }).start();
         }
 
-        private void connectToProxy(String server, int port, String secret) {
-            if (server == null || secret == null || port == 0) {
+        private void tryNextProxy() {
+            if (!proxyConnecting) return;
+            if (proxyCandidates == null || proxyTryIndex >= proxyCandidates.size() || proxyTryIndex >= 15) {
                 proxyFailed();
                 return;
             }
-            activeProxyInfo = new SharedConfig.ProxyInfo(server, port, "", "", secret);
-            SharedConfig.addProxy(activeProxyInfo);
-            SharedConfig.currentProxy = activeProxyInfo;
-            SharedPreferences pref = MessagesController.getGlobalMainSettings();
-            pref.edit().putBoolean("proxy_enabled", true).commit();
-            ConnectionsManager.setProxySettings(true, server, port, "", "", secret);
+            String[] c = proxyCandidates.get(proxyTryIndex);
+            proxyTryIndex++;
+            final String server = c[0];
+            final int port = Integer.parseInt(c[1]);
+            final String secret = c[2];
             ConnectionsManager.getInstance(currentAccount).checkProxy(server, port, "", "", secret, time -> AndroidUtilities.runOnUIThread(() -> {
-                stopProxyDots();
-                proxyConnecting = false;
+                if (!proxyConnecting) return;
                 if (time < 0) {
-                    proxyFailed();
+                    tryNextProxy();
                 } else {
+                    activeProxyInfo = new SharedConfig.ProxyInfo(server, port, "", "", secret);
+                    SharedConfig.addProxy(activeProxyInfo);
+                    SharedConfig.currentProxy = activeProxyInfo;
+                    SharedPreferences pref = MessagesController.getGlobalMainSettings();
+                    pref.edit().putBoolean("proxy_enabled", true).commit();
+                    ConnectionsManager.setProxySettings(true, server, port, "", "", secret);
+                    stopProxyDots();
+                    proxyConnecting = false;
                     proxyStatusView.setTextColor(0xFF4CD964);
                     proxyStatusView.setText("Active (" + time + " ms)");
                 }
@@ -2248,7 +2263,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyIconBgD.setCornerRadius(dp(12));
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
-            proxyIcon.setImageResource(R.drawable.msg_message);
+            proxyIcon.setImageResource(R.drawable.proxy_check);
             proxyIcon.setColorFilter(0xFFFFFFFF);
             proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
