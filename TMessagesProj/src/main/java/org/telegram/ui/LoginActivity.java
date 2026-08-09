@@ -172,7 +172,6 @@ import org.telegram.ui.Components.FragmentFloatingButton;
 import org.telegram.ui.Components.ImageUpdater;
 import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.Switch;
 import org.telegram.ui.Components.LinkPath;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.LoadingDrawable;
@@ -1963,7 +1962,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private OutlineTextContainerView countryOutlineView;
         private OutlineTextContainerView phoneOutlineView;
         private TextView proxyStatusView;
-        private Switch proxySwitch;
+        private android.widget.Switch proxySwitch;
         private boolean proxyConnecting = false;
         private int proxyDotCount = 0;
         private Runnable proxyDotRunnable;
@@ -2035,7 +2034,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyConnecting = false;
             proxyStatusView.setTextColor(0xFFFF3B30);
             proxyStatusView.setText("Failed, try again");
-            proxySwitch.setChecked(false, true);
+            proxySwitch.setChecked(false);
         }
 
         private void stopProxyConnection() {
@@ -2231,7 +2230,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
             proxyIcon.setImageResource(R.drawable.msg_forward);
-            proxyIcon.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
+            proxyIcon.setColorFilter(0xFFFFFFFF);
             proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
 
@@ -2260,9 +2259,8 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
 
             proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 12, 70, 12));
 
-            proxySwitch = new Switch(context);
-            proxySwitch.setColors(0xFF8E8E93, 0xFFFFFFFF, 0xFF2C2C2E, 0xFFFFFFFF);
-            proxyCard.addView(proxySwitch, LayoutHelper.createFrame(37, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+            proxySwitch = new android.widget.Switch(context);
+            proxyCard.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
             addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 76, 16, 12, 16, 0));
 
