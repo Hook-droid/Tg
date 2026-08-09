@@ -1968,6 +1968,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         private Runnable proxyDotRunnable;
         private SharedConfig.ProxyInfo activeProxyInfo;
 
+        private void updateProxySwitchColors(boolean on) {
+            int thumb = on ? 0xFF3390EC : 0xFFE84B4B;
+            int track = on ? 0x803390EC : 0x80E84B4B;
+            proxySwitch.setThumbTintList(android.content.res.ColorStateList.valueOf(thumb));
+            proxySwitch.setTrackTintList(android.content.res.ColorStateList.valueOf(track));
+        }
+
         private void startProxyConnection() {
             proxyConnecting = true;
             proxyStatusView.setTextColor(0xFFFFB020);
@@ -1980,24 +1987,36 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     conn.setReadTimeout(8000);
                     java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
                     String line;
-                    String server = null; int port = 0; String secret = null;
+                    java.util.ArrayList<String[]> proxyList = new java.util.ArrayList<>();
                     while ((line = br.readLine()) != null) {
                         line = line.trim();
                         if (line.contains("server=") && line.contains("port=") && line.contains("secret=")) {
                             try {
-                                server = line.substring(line.indexOf("server=") + 7);
-                                server = server.substring(0, server.indexOf("&"));
+                                String srv = line.substring(line.indexOf("server=") + 7);
+                                srv = srv.substring(0, srv.indexOf("&"));
                                 String portStr = line.substring(line.indexOf("port=") + 5);
                                 portStr = portStr.substring(0, portStr.indexOf("&"));
-                                port = Integer.parseInt(portStr);
-                                secret = line.substring(line.indexOf("secret=") + 7);
-                                int amp = secret.indexOf("&");
-                                if (amp > 0) secret = secret.substring(0, amp);
-                                break;
+                                String sec = line.substring(line.indexOf("secret=") + 7);
+                                int amp = sec.indexOf("&");
+                                if (amp > 0) sec = sec.substring(0, amp);
+                                sec = sec.replace("%3D", "").replace("%3d", "").replace("=", "").trim();
+                                srv = srv.trim();
+                                if (srv.endsWith(".")) srv = srv.substring(0, srv.length() - 1);
+                                int p = Integer.parseInt(portStr.trim());
+                                if (srv.length() > 0 && sec.length() > 0) {
+                                    proxyList.add(new String[]{srv, String.valueOf(p), sec});
+                                }
                             } catch (Exception ignore) {}
                         }
                     }
                     br.close();
+                    String server = null; int port = 0; String secret = null;
+                    if (!proxyList.isEmpty()) {
+                        String[] chosen = proxyList.get(0);
+                        server = chosen[0];
+                        port = Integer.parseInt(chosen[1]);
+                        secret = chosen[2];
+                    }
                     final String fServer = server; final int fPort = port; final String fSecret = secret;
                     AndroidUtilities.runOnUIThread(() -> connectToProxy(fServer, fPort, fSecret));
                 } catch (Exception e) {
@@ -2024,7 +2043,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     proxyFailed();
                 } else {
                     proxyStatusView.setTextColor(0xFF4CD964);
-                    proxyStatusView.setText("Connected (ms:" + time + ")");
+                    proxyStatusView.setText("Active (" + time + " ms)");
                 }
             }));
         }
@@ -2229,7 +2248,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyIconBgD.setCornerRadius(dp(12));
             proxyIconBg.setBackground(proxyIconBgD);
             ImageView proxyIcon = new ImageView(context);
-            proxyIcon.setImageResource(R.drawable.msg_forward);
+            proxyIcon.setImageResource(R.drawable.msg_message);
             proxyIcon.setColorFilter(0xFFFFFFFF);
             proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
             proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
@@ -2257,14 +2276,16 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyStatusView.setTypeface(AndroidUtilities.bold());
             proxyTextCol.addView(proxyStatusView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
 
-            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 12, 70, 12));
+            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 10, 66, 10));
 
             proxySwitch = new android.widget.Switch(context);
+            updateProxySwitchColors(false);
             proxyCard.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 76, 16, 12, 16, 0));
+            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 92, 16, 12, 16, 0));
 
             proxySwitch.setOnCheckedChangeListener((view, isChecked) -> {
+                updateProxySwitchColors(isChecked);
                 if (isChecked) {
                     startProxyConnection();
                 } else {
