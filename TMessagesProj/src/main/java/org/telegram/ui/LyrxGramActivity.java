@@ -122,13 +122,97 @@ public class LyrxGramActivity extends BaseFragment {
 
         center.addView(createProxyCard(context), menuParams(34));
 
-        FrameLayout.LayoutParams centerParams = LayoutHelper.createFrame(
-                LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP);
-        centerParams.topMargin = AndroidUtilities.dp(70) + AndroidUtilities.statusBarHeight;
-        root.addView(center, centerParams);
+        center.addView(createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", false, true, checked -> {}), menuParams(12));
+
+        center.addView(createToggleCard(context, R.drawable.msg_message, "No Typing Indicator", "Don't show your typing status", SharedConfig.lyrxHideTyping, false, checked -> {
+            SharedConfig.lyrxHideTyping = checked;
+            saveFlag("lyrxHideTyping", checked);
+        }), menuParams(12));
+
+        center.addView(createToggleCard(context, R.drawable.msg_views, "Invisible Mode", "Don't show your online status", SharedConfig.lyrxInvisibleMode, false, checked -> {
+            SharedConfig.lyrxInvisibleMode = checked;
+            saveFlag("lyrxInvisibleMode", checked);
+        }), menuParams(12));
+
+        center.addView(createToggleCard(context, R.drawable.msg_markread, "Unread Messages", "Don't send read receipts", SharedConfig.lyrxDontSendRead, false, checked -> {
+            SharedConfig.lyrxDontSendRead = checked;
+            saveFlag("lyrxDontSendRead", checked);
+        }), menuParams(12));
+
+        center.addView(createToggleCard(context, R.drawable.menu_privacy_policy, "Full Anonymous Mode", "Block screenshots, forwarding and copying in your chats", SharedConfig.lyrxAnonymousMode, false, checked -> {
+            SharedConfig.lyrxAnonymousMode = checked;
+            saveFlag("lyrxAnonymousMode", checked);
+        }), menuParams(12));
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        scroll.setPadding(0, 0, 0, AndroidUtilities.dp(24));
+        center.setPadding(0, AndroidUtilities.dp(70) + AndroidUtilities.statusBarHeight, 0, 0);
+        scroll.addView(center, new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        root.addView(scroll, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         fragmentView = root;
         return fragmentView;
+    }
+
+    private void saveFlag(String key, boolean value) {
+        MessagesController.getGlobalMainSettings().edit().putBoolean(key, value).apply();
+    }
+
+    private FrameLayout createToggleCard(Context context, int iconRes, String titleText, String descText, boolean initialChecked, boolean deleteStyle, OnToggle listener) {
+        FrameLayout card = new FrameLayout(context);
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(0xFF1C1C1E);
+        cardBg.setCornerRadius(AndroidUtilities.dp(24));
+        cardBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        card.setBackground(cardBg);
+
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable iconBg = new GradientDrawable();
+        iconBg.setColor(0xFF2C2C2E);
+        iconBg.setCornerRadius(AndroidUtilities.dp(16));
+        iconBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        iconBox.setBackground(iconBg);
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(0xFFFFFFFF);
+        iconBox.addView(icon, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+        card.addView(iconBox, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
+
+        LinearLayout textCol = new LinearLayout(context);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        TextView t = new TextView(context);
+        t.setText(titleText);
+        t.setTextColor(0xFFFFFFFF);
+        t.setTextSize(16);
+        t.setTypeface(AndroidUtilities.bold());
+        TextView d = new TextView(context);
+        d.setText(descText);
+        d.setTextColor(0xFF9E9E9E);
+        d.setTextSize(13);
+        textCol.addView(t);
+        textCol.addView(d);
+        card.addView(textCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 10, 66, 10));
+
+        org.telegram.ui.Components.Switch sw = new org.telegram.ui.Components.Switch(context);
+        sw.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_switchTrackBlueThumb, Theme.key_switchTrackBlueThumbChecked);
+        sw.setChecked(initialChecked, false);
+        card.addView(sw, LayoutHelper.createFrame(37, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+
+        card.setOnClickListener(v -> {
+            boolean ns = !sw.isChecked();
+            sw.setChecked(ns, true);
+            if (listener != null) listener.onToggle(ns);
+        });
+
+        card.setMinimumHeight(AndroidUtilities.dp(80));
+        return card;
+    }
+
+    private interface OnToggle {
+        void onToggle(boolean checked);
     }
 
     private FrameLayout createProxyCard(Context context) {
