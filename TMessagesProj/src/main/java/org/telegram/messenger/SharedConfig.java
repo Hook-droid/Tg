@@ -308,6 +308,8 @@ public class SharedConfig {
     public static boolean lyrxDontSendRead;
     public static boolean lyrxAnonymousMode;
     public static boolean lyrxShowDeleted;
+    public static boolean lyrxMuteEnabled;
+    public static java.util.HashSet<Long> lyrxMuteList = new java.util.HashSet<>();
     public static boolean hasCameraCache;
     public static boolean showNotificationsForAllAccounts = true;
     public static boolean debugVideoQualities = false;
@@ -506,6 +508,32 @@ public class SharedConfig {
         return value;
     }
 
+    public static void lyrxSaveMuteList() {
+        StringBuilder sb = new StringBuilder();
+        for (Long id : lyrxMuteList) {
+            if (sb.length() > 0) sb.append(",");
+            sb.append(id);
+        }
+        MessagesController.getGlobalMainSettings().edit()
+                .putString("lyrxMuteList", sb.toString())
+                .putBoolean("lyrxMuteEnabled", lyrxMuteEnabled)
+                .apply();
+    }
+
+    public static void lyrxAddMute(long id) {
+        lyrxMuteList.add(id);
+        lyrxSaveMuteList();
+    }
+
+    public static void lyrxRemoveMute(long id) {
+        lyrxMuteList.remove(id);
+        lyrxSaveMuteList();
+    }
+
+    public static boolean lyrxIsMuted(long id) {
+        return lyrxMuteEnabled && lyrxMuteList.contains(id);
+    }
+
     public static void loadConfig() {
         synchronized (sync) {
             if (configLoaded || ApplicationLoader.applicationContext == null) {
@@ -518,6 +546,17 @@ public class SharedConfig {
             lyrxDontSendRead = lyrxPrefs.getBoolean("lyrxDontSendRead", false);
             lyrxAnonymousMode = lyrxPrefs.getBoolean("lyrxAnonymousMode", false);
             lyrxShowDeleted = lyrxPrefs.getBoolean("lyrxShowDeleted", false);
+            lyrxMuteEnabled = lyrxPrefs.getBoolean("lyrxMuteEnabled", false);
+            lyrxMuteList.clear();
+            String muteStr = lyrxPrefs.getString("lyrxMuteList", "");
+            if (muteStr != null && muteStr.length() > 0) {
+                String[] parts = muteStr.split(",");
+                for (String p : parts) {
+                    try {
+                        lyrxMuteList.add(Long.parseLong(p.trim()));
+                    } catch (Exception ignore) {}
+                }
+            }
 
             BackgroundActivityPrefs.prefs = ApplicationLoader.applicationContext.getSharedPreferences("background_activity", Context.MODE_PRIVATE);
 

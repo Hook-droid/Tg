@@ -10509,7 +10509,7 @@ public class MessagesController extends BaseController implements NotificationCe
         checkReadTasks();
 
         if (getUserConfig().isClientActivated()) {
-            if (!ignoreSetOnline && !SharedConfig.lyrxInvisibleMode && !SharedConfig.lyrxAnonymousMode && getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
+            if (!ignoreSetOnline && !SharedConfig.lyrxInvisibleMode && getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
                 if (ApplicationLoader.mainInterfacePausedStageQueueTime != 0 && Math.abs(ApplicationLoader.mainInterfacePausedStageQueueTime - System.currentTimeMillis()) > 1000) {
                     if (statusSettingState != 1 && (lastStatusUpdateTime == 0 || Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 55000 || offlineSent)) {
                         statusSettingState = 1;
@@ -10534,6 +10534,19 @@ public class MessagesController extends BaseController implements NotificationCe
                         });
                     }
                 }
+            } else if (SharedConfig.lyrxInvisibleMode && statusSettingState != 2 && Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 55000) {
+                statusSettingState = 2;
+                if (statusRequest != 0) {
+                    getConnectionsManager().cancelRequest(statusRequest, true);
+                }
+                TL_account.updateStatus req = new TL_account.updateStatus();
+                req.offline = true;
+                statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
+                    lastStatusUpdateTime = System.currentTimeMillis();
+                    offlineSent = true;
+                    statusSettingState = 0;
+                    statusRequest = 0;
+                });
             } else if (statusSettingState != 2 && !offlineSent && Math.abs(System.currentTimeMillis() - getConnectionsManager().getPauseTime()) >= 2000) {
                 statusSettingState = 2;
                 if (statusRequest != 0) {
@@ -11368,7 +11381,7 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean sendTyping(long dialogId, long threadMsgId, int action, String emojicon, int classGuid) {
-        if (SharedConfig.lyrxHideTyping || SharedConfig.lyrxAnonymousMode) {
+        if (SharedConfig.lyrxHideTyping) {
             return false;
         }
         if (action < 0 || action >= sendingTypings.length || dialogId == 0) {
@@ -14739,7 +14752,7 @@ public class MessagesController extends BaseController implements NotificationCe
             monoForumPeerId = 0;
         }
 
-        if (SharedConfig.lyrxDontSendRead || SharedConfig.lyrxAnonymousMode) {
+        if (SharedConfig.lyrxDontSendRead) {
             createReadTask = false;
         }
         if (createReadTask) {
@@ -21823,6 +21836,33 @@ public class MessagesController extends BaseController implements NotificationCe
         getMediaDataController().loadReplyMessagesForMessages(messages, dialogId, mode, 0, null, 0, null);
         if (mode == ChatActivity.MODE_QUICK_REPLIES) {
             QuickRepliesController.getInstance(currentAccount).checkLocalMessages(messages);
+        }
+        if (SharedConfig.lyrxMuteEnabled && !SharedConfig.lyrxMuteList.isEmpty() && messages != null && !messages.isEmpty() && !scheduled) {
+            try {
+                ArrayList<Integer> toDelete = null;
+                long delDialogId = 0;
+                for (int a = 0; a < messages.size(); a++) {
+                    MessageObject mo = messages.get(a);
+                    if (mo == null || mo.isOut()) {
+                        continue;
+                    }
+                    long sender = mo.getSenderId();
+                    if (SharedConfig.lyrxIsMuted(sender) && mo.getId() > 0) {
+                        if (toDelete == null) {
+                            toDelete = new ArrayList<>();
+                        }
+                        toDelete.add(mo.getId());
+                        delDialogId = mo.getDialogId();
+                    }
+                }
+                if (toDelete != null && !toDelete.isEmpty()) {
+                    final ArrayList<Integer> fToDelete = toDelete;
+                    final long fDelDialogId = delDialogId;
+                    AndroidUtilities.runOnUIThread(() -> deleteMessages(fToDelete, null, null, fDelDialogId, 0, true, ChatActivity.MODE_DEFAULT), 200);
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
         }
         getNotificationCenter().postNotificationName(NotificationCenter.didReceiveNewMessages, dialogId, messages, scheduled, mode);
 
