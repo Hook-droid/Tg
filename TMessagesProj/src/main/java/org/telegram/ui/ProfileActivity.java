@@ -652,6 +652,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int channelInfoRow;
     private int usernameRow;
     private int idRow;
+    private int channelIdRow;
     private int notificationsDividerRow;
     private int notificationsRow;
     private int bizHoursRow;
@@ -4451,6 +4452,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 openAddMember();
             } else if (position == idRow) {
                 AndroidUtilities.addToClipboard(String.valueOf(userId));
+                BulletinFactory.of(this).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
+            } else if (position == channelIdRow) {
+                AndroidUtilities.addToClipboard(String.valueOf(chatId));
                 BulletinFactory.of(this).createCopyBulletin(LocaleController.getString(R.string.TextCopied)).show();
             } else if (position == usernameRow) {
                 processOnClickOrPress(position, view, x, y);
@@ -10498,6 +10502,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         channelInfoRow = -1;
         usernameRow = -1;
         idRow = -1;
+        channelIdRow = -1;
         settingsTimerRow = -1;
         settingsKeyRow = -1;
         notificationsDividerRow = -1;
@@ -10847,6 +10852,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (chatInfo.location instanceof TLRPC.TL_channelLocation) {
                         locationRow = rowCount++;
                     }
+                }
+                if (chatId != 0) {
+                    channelIdRow = rowCount++;
                 }
                 if (ChatObject.isPublic(currentChat)) {
                     usernameRow = rowCount++;
@@ -13554,6 +13562,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
                     } else if (position == idRow) {
                         detailCell.setTextAndValue(String.valueOf(userId), "ID", false);
+                    } else if (position == channelIdRow) {
+                        detailCell.setTextAndValue(String.valueOf(chatId), "ID", false);
                     } else if (position == locationRow) {
                         if (chatInfo != null && chatInfo.location instanceof TLRPC.TL_channelLocation) {
                             TLRPC.TL_channelLocation location = (TLRPC.TL_channelLocation) chatInfo.location;
@@ -14292,7 +14302,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (position == infoHeaderRow || position == membersHeaderRow || position == settingsSectionRow2 ||
                     position == numberSectionRow || position == helpHeaderRow || position == debugHeaderRow || position == botPermissionsHeader) {
                 return VIEW_TYPE_HEADER;
-            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow) {
+            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow || position == channelIdRow) {
                 return VIEW_TYPE_TEXT_DETAIL;
             } else if (position == usernameRow || position == setUsernameRow) {
                 return VIEW_TYPE_TEXT_DETAIL_MULTILINE;

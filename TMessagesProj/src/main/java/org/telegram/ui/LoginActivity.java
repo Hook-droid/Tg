@@ -2332,13 +2332,13 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             proxyStatusView.setTypeface(AndroidUtilities.bold());
             proxyTextCol.addView(proxyStatusView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
 
-            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 10, 66, 10));
+            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 8, 66, 8));
 
             proxySwitch = new android.widget.Switch(context);
             updateProxySwitchColors(false);
             proxyCard.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
-            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 80, 16, 12, 16, 0));
+            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 92, 16, 12, 16, 0));
 
             proxySwitch.setOnCheckedChangeListener((view, isChecked) -> {
                 updateProxySwitchColors(isChecked);
