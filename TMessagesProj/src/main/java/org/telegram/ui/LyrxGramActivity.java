@@ -122,29 +122,29 @@ public class LyrxGramActivity extends BaseFragment {
 
         center.addView(createProxyCard(context), menuParams(34));
 
-        FrameLayout showDeletedCard = createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, checked -> {
+        FrameLayout showDeletedCard = createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, "showDeleted", checked -> {
             SharedConfig.lyrxShowDeleted = checked;
             saveFlag("lyrxShowDeleted", checked);
         });
         showDeletedCard.setOnClickListener(v -> presentFragment(new LyrxDeletedSettingsActivity()));
         center.addView(showDeletedCard, menuParams(12));
 
-        center.addView(createToggleCard(context, R.drawable.msg_message, "No Typing Indicator", "Don't show your typing status", SharedConfig.lyrxHideTyping, false, checked -> {
+        center.addView(createToggleCard(context, R.drawable.msg_message, "No Typing Indicator", "Don't show your typing status", SharedConfig.lyrxHideTyping, false, "hideTyping", checked -> {
             SharedConfig.lyrxHideTyping = checked;
             saveFlag("lyrxHideTyping", checked);
         }), menuParams(12));
 
-        center.addView(createToggleCard(context, R.drawable.msg_views, "Invisible Mode", "Don't show your online status", SharedConfig.lyrxInvisibleMode, false, checked -> {
+        center.addView(createToggleCard(context, R.drawable.msg_views, "Invisible Mode", "Don't show your online status", SharedConfig.lyrxInvisibleMode, false, "invisible", checked -> {
             SharedConfig.lyrxInvisibleMode = checked;
             saveFlag("lyrxInvisibleMode", checked);
         }), menuParams(12));
 
-        center.addView(createToggleCard(context, R.drawable.msg_markread, "Unread Messages", "Don't send read receipts", SharedConfig.lyrxDontSendRead, false, checked -> {
+        center.addView(createToggleCard(context, R.drawable.msg_markread, "Unread Messages", "Don't send read receipts", SharedConfig.lyrxDontSendRead, false, "dontSendRead", checked -> {
             SharedConfig.lyrxDontSendRead = checked;
             saveFlag("lyrxDontSendRead", checked);
         }), menuParams(12));
 
-        FrameLayout muteCard = createToggleCard(context, R.drawable.msg_mute, "Mute", "Auto-delete messages from blacklisted users", SharedConfig.lyrxMuteEnabled, false, checked -> {
+        FrameLayout muteCard = createToggleCard(context, R.drawable.msg_mute, "Mute", "Auto-delete messages from blacklisted users", SharedConfig.lyrxMuteEnabled, false, "mute", checked -> {
             SharedConfig.lyrxMuteEnabled = checked;
             SharedConfig.lyrxSaveMuteList();
         });
@@ -169,7 +169,7 @@ public class LyrxGramActivity extends BaseFragment {
         MessagesController.getGlobalMainSettings().edit().putBoolean(key, value).apply();
     }
 
-    private FrameLayout createToggleCard(Context context, int iconRes, String titleText, String descText, boolean initialChecked, boolean deleteStyle, OnToggle listener) {
+    private FrameLayout createToggleCard(Context context, int iconRes, String titleText, String descText, boolean initialChecked, boolean deleteStyle, String flagKey, OnToggle listener) {
         FrameLayout card = new FrameLayout(context);
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(0xFF1C1C1E);
@@ -208,6 +208,9 @@ public class LyrxGramActivity extends BaseFragment {
         org.telegram.ui.Components.Switch sw = new org.telegram.ui.Components.Switch(context);
         sw.setColors(Theme.key_switchTrack, Theme.key_switchTrackChecked, Theme.key_switchTrackBlueThumb, Theme.key_switchTrackBlueThumbChecked);
         sw.setChecked(initialChecked, false);
+        if (flagKey != null) {
+            lyrxSwitches.put(flagKey, sw);
+        }
         card.addView(sw, LayoutHelper.createFrame(37, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
 
         card.setOnClickListener(v -> {
@@ -218,6 +221,21 @@ public class LyrxGramActivity extends BaseFragment {
 
         card.setMinimumHeight(AndroidUtilities.dp(80));
         return card;
+    }
+
+    private final java.util.HashMap<String, org.telegram.ui.Components.Switch> lyrxSwitches = new java.util.HashMap<>();
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        try {
+            org.telegram.ui.Components.Switch s;
+            if ((s = lyrxSwitches.get("showDeleted")) != null) s.setChecked(SharedConfig.lyrxShowDeleted, true);
+            if ((s = lyrxSwitches.get("hideTyping")) != null) s.setChecked(SharedConfig.lyrxHideTyping, true);
+            if ((s = lyrxSwitches.get("invisible")) != null) s.setChecked(SharedConfig.lyrxInvisibleMode, true);
+            if ((s = lyrxSwitches.get("dontSendRead")) != null) s.setChecked(SharedConfig.lyrxDontSendRead, true);
+            if ((s = lyrxSwitches.get("mute")) != null) s.setChecked(SharedConfig.lyrxMuteEnabled, true);
+        } catch (Exception ignore) {}
     }
 
     private interface OnToggle {

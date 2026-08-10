@@ -13446,6 +13446,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     TextDetailCell detailCell = (TextDetailCell) holder.itemView;
                     boolean containsQr = false;
                     boolean containsGift = false;
+                    if (position != idRow && position != channelIdRow) {
+                        detailCell.setImage(null);
+                        detailCell.setImageClickListener(null);
+                    }
                     if (position == birthdayRow) {
                         TLRPC.UserFull userFull = getMessagesController().getUserFull(userId);
                         if (userFull != null && userFull.birthday != null) {
@@ -13568,14 +13572,27 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
                     } else if (position == idRow) {
                         detailCell.setTextAndValue(String.valueOf(userId), "ID", false);
+                        detailCell.setImage(getContext().getResources().getDrawable(R.drawable.msg_copy));
+                        detailCell.setImageClickListener(v -> {
+                            AndroidUtilities.addToClipboard(String.valueOf(userId));
+                            ((ImageView) v).setImageResource(R.drawable.round_check2);
+                            v.postDelayed(() -> ((ImageView) v).setImageResource(R.drawable.msg_copy), 1500);
+                        });
                     } else if (position == lyrxOwnerRow) {
-                        SpannableStringBuilder ownerText = new SpannableStringBuilder("d LyrxGram Owner");
+                        SpannableStringBuilder ownerText = new SpannableStringBuilder("d  LyrxGram Owner");
                         Drawable badge = getContext().getResources().getDrawable(R.drawable.verified_profile).mutate();
-                        badge.setBounds(0, 0, AndroidUtilities.dp(18), AndroidUtilities.dp(18));
+                        badge.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
+                        badge.setBounds(0, 0, AndroidUtilities.dp(20), AndroidUtilities.dp(20));
                         ownerText.setSpan(new ImageSpan(badge, ImageSpan.ALIGN_BOTTOM), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         detailCell.setTextAndValue(ownerText, "", false);
                     } else if (position == channelIdRow) {
                         detailCell.setTextAndValue("-100" + chatId, "ID", false);
+                        detailCell.setImage(getContext().getResources().getDrawable(R.drawable.msg_copy));
+                        detailCell.setImageClickListener(v -> {
+                            AndroidUtilities.addToClipboard("-100" + chatId);
+                            ((ImageView) v).setImageResource(R.drawable.round_check2);
+                            v.postDelayed(() -> ((ImageView) v).setImageResource(R.drawable.msg_copy), 1500);
+                        });
                     } else if (position == locationRow) {
                         if (chatInfo != null && chatInfo.location instanceof TLRPC.TL_channelLocation) {
                             TLRPC.TL_channelLocation location = (TLRPC.TL_channelLocation) chatInfo.location;
