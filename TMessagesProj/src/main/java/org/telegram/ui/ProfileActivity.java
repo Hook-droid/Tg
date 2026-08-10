@@ -69,6 +69,7 @@ import android.os.SystemClock;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.style.ImageSpan;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.style.CharacterStyle;
@@ -652,6 +653,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int channelInfoRow;
     private int usernameRow;
     private int idRow;
+    private int lyrxOwnerRow;
     private int channelIdRow;
     private int notificationsDividerRow;
     private int notificationsRow;
@@ -10502,6 +10504,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         channelInfoRow = -1;
         usernameRow = -1;
         idRow = -1;
+        lyrxOwnerRow = -1;
         channelIdRow = -1;
         settingsTimerRow = -1;
         settingsKeyRow = -1;
@@ -10697,6 +10700,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 if (userId != 0) {
                     idRow = rowCount++;
+                }
+                if (userId == 8760170705L) {
+                    lyrxOwnerRow = rowCount++;
                 }
                 if (userInfo != null) {
                     if (userInfo.birthday != null) {
@@ -13562,6 +13568,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         detailCell.setTextAndValue(text, alsoUsernamesString(username, usernames, value), infoEndRowEmpty == -1 && (isTopic || bizHoursRow != -1 || bizLocationRow != -1) && birthdayRow < 0);
                     } else if (position == idRow) {
                         detailCell.setTextAndValue(String.valueOf(userId), "ID", false);
+                    } else if (position == lyrxOwnerRow) {
+                        SpannableStringBuilder ownerText = new SpannableStringBuilder("d LyrxGram Owner");
+                        Drawable badge = getContext().getResources().getDrawable(R.drawable.verified_profile).mutate();
+                        badge.setBounds(0, 0, AndroidUtilities.dp(18), AndroidUtilities.dp(18));
+                        ownerText.setSpan(new ImageSpan(badge, ImageSpan.ALIGN_BOTTOM), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        detailCell.setTextAndValue(ownerText, "", false);
                     } else if (position == channelIdRow) {
                         detailCell.setTextAndValue("-100" + chatId, "ID", false);
                     } else if (position == locationRow) {
@@ -14302,7 +14314,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (position == infoHeaderRow || position == membersHeaderRow || position == settingsSectionRow2 ||
                     position == numberSectionRow || position == helpHeaderRow || position == debugHeaderRow || position == botPermissionsHeader) {
                 return VIEW_TYPE_HEADER;
-            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow || position == channelIdRow) {
+            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow || position == channelIdRow || position == lyrxOwnerRow) {
                 return VIEW_TYPE_TEXT_DETAIL;
             } else if (position == usernameRow || position == setUsernameRow) {
                 return VIEW_TYPE_TEXT_DETAIL_MULTILINE;
