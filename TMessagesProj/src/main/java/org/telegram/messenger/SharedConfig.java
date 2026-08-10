@@ -307,6 +307,7 @@ public class SharedConfig {
     public static boolean lyrxInvisibleMode;
     public static boolean lyrxDontSendRead;
     public static boolean lyrxAnonymousMode;
+    public static boolean lyrxShowDeleted;
     public static boolean hasCameraCache;
     public static boolean showNotificationsForAllAccounts = true;
     public static boolean debugVideoQualities = false;
@@ -516,6 +517,7 @@ public class SharedConfig {
             lyrxInvisibleMode = lyrxPrefs.getBoolean("lyrxInvisibleMode", false);
             lyrxDontSendRead = lyrxPrefs.getBoolean("lyrxDontSendRead", false);
             lyrxAnonymousMode = lyrxPrefs.getBoolean("lyrxAnonymousMode", false);
+            lyrxShowDeleted = lyrxPrefs.getBoolean("lyrxShowDeleted", false);
 
             BackgroundActivityPrefs.prefs = ApplicationLoader.applicationContext.getSharedPreferences("background_activity", Context.MODE_PRIVATE);
 
