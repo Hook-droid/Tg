@@ -146,7 +146,7 @@ public class LyrxMusicCard extends View {
         float radius = AndroidUtilities.dp(16);
         canvas.drawRoundRect(cardRect, radius, radius, bgPaint);
 
-        int coverSize = AndroidUtilities.dp(60);
+        int coverSize = AndroidUtilities.dp(62);
         int coverLeft = pad + AndroidUtilities.dp(10);
         int coverTop = (getHeight() - coverSize) / 2;
         coverRect.set(coverLeft, coverTop, coverLeft + coverSize, coverTop + coverSize);

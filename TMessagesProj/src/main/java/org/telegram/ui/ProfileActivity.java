@@ -6818,6 +6818,40 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         return isFragmentOpened;
     }
 
+    private void lyrxPlayProfileMusic() {
+        try {
+            if (userInfo == null || userInfo.saved_music == null) {
+                return;
+            }
+            if (savedMusicList == null) {
+                if (MediaController.getInstance().currentSavedMusicList != null &&
+                        MediaController.getInstance().currentSavedMusicList.currentAccount == currentAccount &&
+                        MediaController.getInstance().currentSavedMusicList.dialogId == getDialogId()) {
+                    savedMusicList = MediaController.getInstance().currentSavedMusicList;
+                } else {
+                    savedMusicList = new MessagesController.SavedMusicList(currentAccount, getDialogId());
+                    savedMusicList.setup(userInfo.saved_music);
+                }
+            }
+            if (!savedMusicList.list.isEmpty()) {
+                boolean sameList = false;
+                if (MediaController.getInstance().currentSavedMusicList != savedMusicList ||
+                        !MediaController.getInstance().isPlayingMessage(savedMusicList.list.get(0))) {
+                    MediaController.getInstance().cleanup();
+                } else {
+                    sameList = true;
+                }
+                MediaController.getInstance().currentSavedMusicList = savedMusicList;
+                MediaController.getInstance().getPlaylist().clear();
+                MediaController.getInstance().getPlaylist().addAll(savedMusicList.list);
+                if (!sameList) MediaController.getInstance().playMessage(savedMusicList.list.get(0));
+                showDialog(new AudioPlayerAlert(getContext(), getResourceProvider()));
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+    }
+
     private void openAvatar() {
         openAvatar(false);
     }
@@ -11051,7 +11085,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (userInfo != null) {
                 musicView.setMusicDocument(userInfo.saved_music);
             }
-            musicView.setVisibility(hasMusic ? View.VISIBLE : View.GONE);
+            musicView.setVisibility(View.GONE);
         }
     }
 
@@ -13591,11 +13625,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             v.postDelayed(() -> ((ImageView) v).setImageResource(R.drawable.msg_copy), 1500);
                         });
                     } else if (position == lyrxOwnerRow) {
+                        int lyrxGray = ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText), 0x80);
                         SpannableStringBuilder ownerText = new SpannableStringBuilder("d  LyrxGram Owner");
                         Drawable badge = getContext().getResources().getDrawable(R.drawable.verified_profile).mutate();
-                        badge.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), android.graphics.PorterDuff.Mode.MULTIPLY));
-                        badge.setBounds(0, 0, AndroidUtilities.dp(20), AndroidUtilities.dp(20));
+                        badge.setColorFilter(new android.graphics.PorterDuffColorFilter(lyrxGray, android.graphics.PorterDuff.Mode.SRC_IN));
+                        badge.setBounds(0, 0, AndroidUtilities.dp(18), AndroidUtilities.dp(18));
                         ownerText.setSpan(new ImageSpan(badge, ImageSpan.ALIGN_BOTTOM), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        ownerText.setSpan(new android.text.style.ForegroundColorSpan(lyrxGray), 2, ownerText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         detailCell.setTextAndValue(ownerText, "", false);
                     } else if (position == channelIdRow) {
                         detailCell.setTextAndValue("-100" + chatId, "ID", false);
@@ -14206,6 +14242,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         if (uf != null && uf.saved_music != null) {
                             ((org.telegram.ui.Components.LyrxMusicCard) holder.itemView).setMusicDocument(uf.saved_music);
                         }
+                        holder.itemView.setOnClickListener(v -> lyrxPlayProfileMusic());
                     }
                     break;
             }
