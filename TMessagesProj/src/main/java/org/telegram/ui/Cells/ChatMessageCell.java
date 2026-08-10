@@ -20037,8 +20037,34 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
     @SuppressLint("WrongCall")
     @Override
     protected void onDraw(Canvas canvas) {
+        if (currentMessageObject != null && currentMessageObject.lyrxDeleted) {
+            int sc = canvas.saveLayerAlpha(0, 0, getWidth(), getHeight(), 115, Canvas.ALL_SAVE_FLAG);
+            drawInternal(canvas);
+            drawLyrxDeletedMark(canvas);
+            canvas.restoreToCount(sc);
+            return;
+        }
         drawInternal(canvas);
     }
+
+    private android.graphics.drawable.Drawable lyrxTrashDrawable;
+
+    private void drawLyrxDeletedMark(Canvas canvas) {
+        try {
+            if (lyrxTrashDrawable == null) {
+                lyrxTrashDrawable = getResources().getDrawable(R.drawable.msg_delete).mutate();
+            }
+            int color = currentMessageObject != null && currentMessageObject.isOutOwner() ? 0xFFFFFFFF : Theme.getColor(Theme.key_chat_serviceText);
+            lyrxTrashDrawable.setColorFilter(new android.graphics.PorterDuffColorFilter(color, android.graphics.PorterDuff.Mode.SRC_IN));
+            int sz = dp(13);
+            int tx = (int) (getTimeX() - dp(16));
+            int ty = (int) (drawTimeY + dp(1));
+            if (tx < dp(4)) tx = dp(4);
+            lyrxTrashDrawable.setBounds(tx, ty, tx + sz, ty + sz);
+            lyrxTrashDrawable.draw(canvas);
+        } catch (Exception ignore) {}
+    }
+
     public void drawInternal(Canvas canvas) {
         if (currentMessageObject == null) {
             return;
