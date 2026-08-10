@@ -16,6 +16,7 @@ import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.browser.Browser;
 import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.tgnet.ConnectionsManager;
@@ -120,38 +121,23 @@ public class LyrxGramActivity extends BaseFragment {
         subParams.topMargin = AndroidUtilities.dp(6);
         center.addView(subtitle, subParams);
 
-        center.addView(createProxyCard(context), menuParams(34));
+        center.addView(createProxyCard(context), menuParams(24));
 
-        FrameLayout showDeletedCard = createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, "showDeleted", checked -> {
-            SharedConfig.lyrxShowDeleted = checked;
-            saveFlag("lyrxShowDeleted", checked);
-        });
-        showDeletedCard.setOnClickListener(v -> presentFragment(new LyrxDeletedSettingsActivity()));
-        center.addView(showDeletedCard, menuParams(12));
+        center.addView(createSectionHeader(context, "Categories"), sectionHeaderParams());
+        LinearLayout catGroup = createGroupContainer(context);
+        catGroup.addView(createRow(context, R.drawable.menu_privacy_policy, "Anonymous Mode", true, () -> presentFragment(new LyrxAnonymousModeActivity())));
+        catGroup.addView(createDivider(context));
+        catGroup.addView(createRow(context, R.drawable.msg_message, "Chat Modes", true, () -> presentFragment(new LyrxChatModesActivity())));
+        catGroup.addView(createDivider(context));
+        catGroup.addView(createRow(context, R.drawable.msg_fave, "Other", true, () -> presentFragment(new LyrxOtherActivity())));
+        center.addView(catGroup, groupParams());
 
-        center.addView(createToggleCard(context, R.drawable.msg_message, "No Typing Indicator", "Don't show your typing status", SharedConfig.lyrxHideTyping, false, "hideTyping", checked -> {
-            SharedConfig.lyrxHideTyping = checked;
-            saveFlag("lyrxHideTyping", checked);
-        }), menuParams(12));
-
-        center.addView(createToggleCard(context, R.drawable.msg_views, "Invisible Mode", "Don't show your online status", SharedConfig.lyrxInvisibleMode, false, "invisible", checked -> {
-            SharedConfig.lyrxInvisibleMode = checked;
-            saveFlag("lyrxInvisibleMode", checked);
-        }), menuParams(12));
-
-        center.addView(createToggleCard(context, R.drawable.msg_markread, "Unread Messages", "Don't send read receipts", SharedConfig.lyrxDontSendRead, false, "dontSendRead", checked -> {
-            SharedConfig.lyrxDontSendRead = checked;
-            saveFlag("lyrxDontSendRead", checked);
-        }), menuParams(12));
-
-        FrameLayout muteCard = createToggleCard(context, R.drawable.msg_mute, "Mute", "Auto-delete messages from blacklisted users", SharedConfig.lyrxMuteEnabled, false, "mute", checked -> {
-            SharedConfig.lyrxMuteEnabled = checked;
-            SharedConfig.lyrxSaveMuteList();
-        });
-        muteCard.setOnClickListener(v -> presentFragment(new LyrxMuteActivity()));
-        center.addView(muteCard, menuParams(12));
-
-        center.addView(createArrowCard(context, R.drawable.msg_search, "Searching ID", "Open Profile By ID", () -> presentFragment(new LyrxSearchIdActivity())), menuParams(12));
+        center.addView(createSectionHeader(context, "Links"), sectionHeaderParams());
+        LinearLayout linkGroup = createGroupContainer(context);
+        linkGroup.addView(createLinkRow(context, R.drawable.msg_channel, "Channel", "@LyroxHacksOfficial", () -> Browser.openUrl(getContext(), "https://t.me/LyroxHacksOfficial")));
+        linkGroup.addView(createDivider(context));
+        linkGroup.addView(createLinkRow(context, R.drawable.msg_openprofile, "Owner", "@LyroxPy", () -> Browser.openUrl(getContext(), "https://t.me/LyroxPy")));
+        center.addView(linkGroup, groupParams());
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(context);
         scroll.setVerticalScrollBarEnabled(false);
@@ -163,6 +149,107 @@ public class LyrxGramActivity extends BaseFragment {
 
         fragmentView = root;
         return fragmentView;
+    }
+
+    private TextView createSectionHeader(Context context, String text) {
+        TextView header = new TextView(context);
+        header.setText(text);
+        header.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        header.setTextSize(15);
+        header.setTypeface(AndroidUtilities.bold());
+        header.setPadding(AndroidUtilities.dp(28), 0, AndroidUtilities.dp(28), 0);
+        return header;
+    }
+
+    private LinearLayout.LayoutParams sectionHeaderParams() {
+        LinearLayout.LayoutParams p = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        p.topMargin = AndroidUtilities.dp(22);
+        p.bottomMargin = AndroidUtilities.dp(8);
+        return p;
+    }
+
+    private LinearLayout createGroupContainer(Context context) {
+        LinearLayout group = new LinearLayout(context);
+        group.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        bg.setCornerRadius(AndroidUtilities.dp(16));
+        group.setBackground(bg);
+        return group;
+    }
+
+    private LinearLayout.LayoutParams groupParams() {
+        LinearLayout.LayoutParams p = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        p.leftMargin = AndroidUtilities.dp(12);
+        p.rightMargin = AndroidUtilities.dp(12);
+        return p;
+    }
+
+    private View createDivider(Context context) {
+        View div = new View(context);
+        div.setBackgroundColor(Theme.getColor(Theme.key_divider));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, 1);
+        p.leftMargin = AndroidUtilities.dp(60);
+        div.setLayoutParams(p);
+        return div;
+    }
+
+    private FrameLayout createRow(Context context, int iconRes, String title, boolean showArrow, Runnable onClick) {
+        FrameLayout row = new FrameLayout(context);
+        row.setBackground(Theme.getSelectorDrawable(false));
+
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon));
+        row.addView(icon, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 18, 0, 0, 0));
+
+        TextView t = new TextView(context);
+        t.setText(title);
+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        t.setTextSize(16);
+        row.addView(t, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 60, 0, 50, 0));
+
+        if (showArrow) {
+            ImageView arrow = new ImageView(context);
+            arrow.setImageResource(R.drawable.msg_arrowright);
+            arrow.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon));
+            arrow.setAlpha(0.5f);
+            row.addView(arrow, LayoutHelper.createFrame(16, 16, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
+        }
+
+        row.setOnClickListener(v -> {
+            if (onClick != null) onClick.run();
+        });
+        row.setMinimumHeight(AndroidUtilities.dp(52));
+        return row;
+    }
+
+    private FrameLayout createLinkRow(Context context, int iconRes, String title, String value, Runnable onClick) {
+        FrameLayout row = new FrameLayout(context);
+        row.setBackground(Theme.getSelectorDrawable(false));
+
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon));
+        row.addView(icon, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 18, 0, 0, 0));
+
+        TextView t = new TextView(context);
+        t.setText(title);
+        t.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        t.setTextSize(16);
+        row.addView(t, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 60, 0, 0, 0));
+
+        TextView v = new TextView(context);
+        v.setText(value);
+        v.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
+        v.setTextSize(16);
+        row.addView(v, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
+
+        row.setOnClickListener(view -> {
+            if (onClick != null) onClick.run();
+        });
+        row.setMinimumHeight(AndroidUtilities.dp(52));
+        return row;
     }
 
     private void saveFlag(String key, boolean value) {
