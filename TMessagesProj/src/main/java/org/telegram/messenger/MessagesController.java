@@ -10509,7 +10509,7 @@ public class MessagesController extends BaseController implements NotificationCe
         checkReadTasks();
 
         if (getUserConfig().isClientActivated()) {
-            if (!ignoreSetOnline && getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
+            if (!ignoreSetOnline && !SharedConfig.lyrxInvisibleMode && !SharedConfig.lyrxAnonymousMode && getConnectionsManager().getPauseTime() == 0 && ApplicationLoader.isScreenOn && !ApplicationLoader.mainInterfacePausedStageQueue) {
                 if (ApplicationLoader.mainInterfacePausedStageQueueTime != 0 && Math.abs(ApplicationLoader.mainInterfacePausedStageQueueTime - System.currentTimeMillis()) > 1000) {
                     if (statusSettingState != 1 && (lastStatusUpdateTime == 0 || Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 55000 || offlineSent)) {
                         statusSettingState = 1;
@@ -11368,6 +11368,9 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean sendTyping(long dialogId, long threadMsgId, int action, String emojicon, int classGuid) {
+        if (SharedConfig.lyrxHideTyping || SharedConfig.lyrxAnonymousMode) {
+            return false;
+        }
         if (action < 0 || action >= sendingTypings.length || dialogId == 0) {
             return false;
         }
@@ -14736,6 +14739,9 @@ public class MessagesController extends BaseController implements NotificationCe
             monoForumPeerId = 0;
         }
 
+        if (SharedConfig.lyrxDontSendRead || SharedConfig.lyrxAnonymousMode) {
+            createReadTask = false;
+        }
         if (createReadTask) {
             Utilities.stageQueue.postRunnable(() -> {
                 ReadTask currentReadTask;

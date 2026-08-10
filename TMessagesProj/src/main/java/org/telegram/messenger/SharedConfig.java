@@ -303,6 +303,10 @@ public class SharedConfig {
     public static boolean sortFilesByName;
     public static boolean shuffleMusic;
     public static boolean playOrderReversed;
+    public static boolean lyrxHideTyping;
+    public static boolean lyrxInvisibleMode;
+    public static boolean lyrxDontSendRead;
+    public static boolean lyrxAnonymousMode;
     public static boolean hasCameraCache;
     public static boolean showNotificationsForAllAccounts = true;
     public static boolean debugVideoQualities = false;
@@ -506,6 +510,12 @@ public class SharedConfig {
             if (configLoaded || ApplicationLoader.applicationContext == null) {
                 return;
             }
+
+            SharedPreferences lyrxPrefs = MessagesController.getGlobalMainSettings();
+            lyrxHideTyping = lyrxPrefs.getBoolean("lyrxHideTyping", false);
+            lyrxInvisibleMode = lyrxPrefs.getBoolean("lyrxInvisibleMode", false);
+            lyrxDontSendRead = lyrxPrefs.getBoolean("lyrxDontSendRead", false);
+            lyrxAnonymousMode = lyrxPrefs.getBoolean("lyrxAnonymousMode", false);
 
             BackgroundActivityPrefs.prefs = ApplicationLoader.applicationContext.getSharedPreferences("background_activity", Context.MODE_PRIVATE);
 
