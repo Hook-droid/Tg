@@ -122,7 +122,12 @@ public class LyrxGramActivity extends BaseFragment {
 
         center.addView(createProxyCard(context), menuParams(34));
 
-        center.addView(createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", false, true, checked -> {}), menuParams(12));
+        FrameLayout showDeletedCard = createToggleCard(context, R.drawable.msg_delete, "Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, checked -> {
+            SharedConfig.lyrxShowDeleted = checked;
+            saveFlag("lyrxShowDeleted", checked);
+        });
+        showDeletedCard.setOnClickListener(v -> presentFragment(new LyrxDeletedSettingsActivity()));
+        center.addView(showDeletedCard, menuParams(12));
 
         center.addView(createToggleCard(context, R.drawable.msg_message, "No Typing Indicator", "Don't show your typing status", SharedConfig.lyrxHideTyping, false, checked -> {
             SharedConfig.lyrxHideTyping = checked;

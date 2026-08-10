@@ -170,6 +170,7 @@ import org.telegram.messenger.MediaDataController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagePreviewParams;
 import org.telegram.messenger.MessageSuggestionParams;
+import org.telegram.messenger.LyrxDeletedStorage;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
@@ -26114,6 +26115,46 @@ public class ChatActivity extends BaseFragment implements
         processDeletedMessages(markAsDeletedMessages, channelId, sent, true);
     }
     private void processDeletedMessages(ArrayList<Integer> markAsDeletedMessages, long channelId, boolean sent, boolean thanos) {
+        if (SharedConfig.lyrxShowDeleted && !sent && chatMode == 0) {
+            boolean anyMarked = false;
+            int li = 0;
+            if (ChatObject.isChannel(currentChat)) {
+                if (channelId == 0 && mergeDialogId != 0) {
+                    li = 1;
+                } else if (channelId == -dialog_id) {
+                    li = 0;
+                } else {
+                    li = -1;
+                }
+            } else if (channelId != 0) {
+                li = -1;
+            }
+            if (li >= 0) {
+                ArrayList<TLRPC.Message> toSave = new ArrayList<>();
+                for (int a = 0; a < markAsDeletedMessages.size(); a++) {
+                    Integer mid = markAsDeletedMessages.get(a);
+                    MessageObject obj = messagesDict[li].get(mid);
+                    if (obj != null && !obj.lyrxDeleted) {
+                        obj.lyrxDeleted = true;
+                        anyMarked = true;
+                        if (obj.messageOwner != null) {
+                            toSave.add(obj.messageOwner);
+                        }
+                    }
+                }
+                if (anyMarked) {
+                    LyrxDeletedStorage.saveDeleted(currentAccount, dialog_id, toSave);
+                    if (chatAdapter != null) {
+                        chatAdapter.notifyDataSetChanged(false);
+                    }
+                    return;
+                }
+            }
+        }
+        processDeletedMessagesInternal(markAsDeletedMessages, channelId, sent, thanos);
+    }
+
+    private void processDeletedMessagesInternal(ArrayList<Integer> markAsDeletedMessages, long channelId, boolean sent, boolean thanos) {
         ArrayList<Integer> removedIndexes = new ArrayList<>();
         ArrayList<Integer> thanosMessagesIndexes = new ArrayList<>();
         final int currentTime = getConnectionsManager().getCurrentTime();
