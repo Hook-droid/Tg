@@ -653,6 +653,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int channelInfoRow;
     private int usernameRow;
     private int idRow;
+    private int lyrxMusicRow;
     private int lyrxOwnerRow;
     private int channelIdRow;
     private int notificationsDividerRow;
@@ -10504,6 +10505,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         channelInfoRow = -1;
         usernameRow = -1;
         idRow = -1;
+        lyrxMusicRow = -1;
         lyrxOwnerRow = -1;
         channelIdRow = -1;
         settingsTimerRow = -1;
@@ -10687,6 +10689,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         channelRow = rowCount++;
                         channelDividerRow = rowCount++;
                     }
+                }
+                if (userInfo != null && userInfo.saved_music != null) {
+                    lyrxMusicRow = rowCount++;
                 }
                 infoStartRow = rowCount;
                 if (!isBot && (hasPhone || !hasInfo)) {
@@ -13103,7 +13108,8 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 VIEW_TYPE_TEXT_DETAIL_MULTILINE_2 = 30,
                 VIEW_TYPE_EMPTY2 = 31,
                 VIEW_TYPE_TEXT2 = 32,
-                VIEW_TYPE_LINKED_COMMUNITY = 33
+                VIEW_TYPE_LINKED_COMMUNITY = 33,
+                VIEW_TYPE_LYRX_MUSIC = 34
                         ;
 
         private Context mContext;
@@ -13229,6 +13235,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         }
                     };
                     view.setTag(RecyclerListView.TAG_NOT_SECTION);
+                    break;
+                }
+                case VIEW_TYPE_LYRX_MUSIC: {
+                    org.telegram.ui.Components.LyrxMusicCard musicCard = new org.telegram.ui.Components.LyrxMusicCard(mContext);
+                    musicCard.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(88)));
+                    view = musicCard;
                     break;
                 }
                 case VIEW_TYPE_BOTTOM_PADDING: {
@@ -14188,6 +14200,14 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     break;
                 case VIEW_TYPE_MUSIC:
                     break;
+                case VIEW_TYPE_LYRX_MUSIC:
+                    if (holder.itemView instanceof org.telegram.ui.Components.LyrxMusicCard) {
+                        TLRPC.UserFull uf = getMessagesController().getUserFull(userId);
+                        if (uf != null && uf.saved_music != null) {
+                            ((org.telegram.ui.Components.LyrxMusicCard) holder.itemView).setMusicDocument(uf.saved_music);
+                        }
+                    }
+                    break;
             }
         }
 
@@ -14328,6 +14348,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
         @Override
         public int getItemViewType(int position) {
+            if (position == lyrxMusicRow) {
+                return VIEW_TYPE_LYRX_MUSIC;
+            }
             if (position == infoHeaderRow || position == membersHeaderRow || position == settingsSectionRow2 ||
                     position == numberSectionRow || position == helpHeaderRow || position == debugHeaderRow || position == botPermissionsHeader) {
                 return VIEW_TYPE_HEADER;
