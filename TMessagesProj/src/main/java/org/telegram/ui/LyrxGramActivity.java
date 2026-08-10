@@ -92,7 +92,7 @@ public class LyrxGramActivity extends BaseFragment {
         plane.setImageResource(R.drawable.intro_tg_plane);
         plane.setColorFilter(0xFFFFFFFF);
         plane.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        logoCircle.addView(plane, LayoutHelper.createFrame(56, 50, Gravity.CENTER, 3, 0, 0, 3));
+        logoCircle.addView(plane, LayoutHelper.createFrame(56, 50, Gravity.CENTER, 4, 0, 0, 0));
 
         logoWrap.addView(logoCircle, LayoutHelper.createFrame(120, 120, Gravity.CENTER));
 
@@ -144,15 +144,17 @@ public class LyrxGramActivity extends BaseFragment {
             saveFlag("lyrxDontSendRead", checked);
         }), menuParams(12));
 
-        center.addView(createToggleCard(context, R.drawable.menu_privacy_policy, "Full Anonymous Mode", "Block screenshots, forwarding and copying in your chats", SharedConfig.lyrxAnonymousMode, false, checked -> {
-            SharedConfig.lyrxAnonymousMode = checked;
-            saveFlag("lyrxAnonymousMode", checked);
-        }), menuParams(12));
+        FrameLayout muteCard = createToggleCard(context, R.drawable.msg_mute, "Mute", "Auto-delete messages from blacklisted users", SharedConfig.lyrxMuteEnabled, false, checked -> {
+            SharedConfig.lyrxMuteEnabled = checked;
+            SharedConfig.lyrxSaveMuteList();
+        });
+        muteCard.setOnClickListener(v -> presentFragment(new LyrxMuteActivity()));
+        center.addView(muteCard, menuParams(12));
 
         android.widget.ScrollView scroll = new android.widget.ScrollView(context);
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipToPadding(false);
-        scroll.setPadding(0, 0, 0, AndroidUtilities.dp(24));
+        scroll.setPadding(0, 0, 0, AndroidUtilities.dp(140));
         center.setPadding(0, AndroidUtilities.dp(70) + AndroidUtilities.statusBarHeight, 0, 0);
         scroll.addView(center, new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         root.addView(scroll, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
@@ -170,14 +172,14 @@ public class LyrxGramActivity extends BaseFragment {
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(0xFF1C1C1E);
         cardBg.setCornerRadius(AndroidUtilities.dp(24));
-        cardBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        cardBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
         card.setBackground(cardBg);
 
         FrameLayout iconBox = new FrameLayout(context);
         GradientDrawable iconBg = new GradientDrawable();
         iconBg.setColor(0xFF2C2C2E);
         iconBg.setCornerRadius(AndroidUtilities.dp(16));
-        iconBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        iconBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
         iconBox.setBackground(iconBg);
         ImageView icon = new ImageView(context);
         icon.setImageResource(iconRes);
@@ -225,14 +227,14 @@ public class LyrxGramActivity extends BaseFragment {
         GradientDrawable cardBg = new GradientDrawable();
         cardBg.setColor(0xFF1C1C1E);
         cardBg.setCornerRadius(AndroidUtilities.dp(24));
-        cardBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        cardBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
         card.setBackground(cardBg);
 
         FrameLayout iconBox = new FrameLayout(context);
         GradientDrawable iconBg = new GradientDrawable();
         iconBg.setColor(0xFF2C2C2E);
         iconBg.setCornerRadius(AndroidUtilities.dp(16));
-        iconBg.setStroke(AndroidUtilities.dp(1), 0x40FFFFFF);
+        iconBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
         iconBox.setBackground(iconBg);
         ImageView icon = new ImageView(context);
         icon.setImageResource(R.drawable.menu_privacy_policy);

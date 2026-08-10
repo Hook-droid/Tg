@@ -795,6 +795,7 @@ public class ChatActivity extends BaseFragment implements
     private int editingMessageObjectReqId;
     public MessageObject editingMessageObject;
     private boolean paused = true;
+    private boolean lyrxLastShowDeletedState = SharedConfig.lyrxShowDeleted;
     private boolean pausedOnLastMessage;
     private boolean wasPaused;
     boolean firstOpen = true;
@@ -20422,6 +20423,36 @@ public class ChatActivity extends BaseFragment implements
         }
         ArrayList<MessageObject> messArr = (ArrayList<MessageObject>) args[2];
 
+        if (SharedConfig.lyrxShowDeleted && chatMode == 0 && !isThreadChat() && messArr != null && dialog_id != 0) {
+            try {
+                java.util.ArrayList<TLRPC.Message> savedDeleted = LyrxDeletedStorage.loadDeleted(currentAccount, dialog_id);
+                if (savedDeleted != null && !savedDeleted.isEmpty()) {
+                    java.util.HashSet<Integer> present = new java.util.HashSet<>();
+                    for (int a = 0; a < messArr.size(); a++) {
+                        present.add(messArr.get(a).getId());
+                    }
+                    for (int a = 0; a < savedDeleted.size(); a++) {
+                        TLRPC.Message dm = savedDeleted.get(a);
+                        if (dm == null || present.contains(dm.id)) {
+                            continue;
+                        }
+                        present.add(dm.id);
+                        MessageObject dmo = new MessageObject(currentAccount, dm, true, true);
+                        dmo.lyrxDeleted = true;
+                        messArr.add(dmo);
+                    }
+                    java.util.Collections.sort(messArr, (m1, m2) -> {
+                        int d1 = m1.messageOwner != null ? m1.messageOwner.date : 0;
+                        int d2 = m2.messageOwner != null ? m2.messageOwner.date : 0;
+                        if (d1 != d2) return Integer.compare(d2, d1);
+                        return Integer.compare(m2.getId(), m1.getId());
+                    });
+                }
+            } catch (Exception e) {
+                FileLog.e(e);
+            }
+        }
+
         boolean universalNotify = false;
         HashMap<Integer, MessageObject> oldMessages = null;
         if (clearOnLoad && (mode == MODE_DEFAULT || mode == MODE_SUGGESTIONS)) {
@@ -29623,6 +29654,45 @@ public class ChatActivity extends BaseFragment implements
     @Override
     public void onResume() {
         super.onResume();
+        try {
+            if (SharedConfig.lyrxShowDeleted != lyrxLastShowDeletedState) {
+                lyrxLastShowDeletedState = SharedConfig.lyrxShowDeleted;
+                if (SharedConfig.lyrxShowDeleted && chatMode == 0 && !isThreadChat() && dialog_id != 0) {
+                    java.util.ArrayList<TLRPC.Message> savedDeleted = LyrxDeletedStorage.loadDeleted(currentAccount, dialog_id);
+                    if (savedDeleted != null && !savedDeleted.isEmpty()) {
+                        java.util.HashSet<Integer> present = new java.util.HashSet<>();
+                        for (int a = 0; a < messages.size(); a++) {
+                            present.add(messages.get(a).getId());
+                        }
+                        boolean added = false;
+                        for (int a = 0; a < savedDeleted.size(); a++) {
+                            TLRPC.Message dm = savedDeleted.get(a);
+                            if (dm == null || present.contains(dm.id)) {
+                                continue;
+                            }
+                            present.add(dm.id);
+                            MessageObject dmo = new MessageObject(currentAccount, dm, true, true);
+                            dmo.lyrxDeleted = true;
+                            messages.add(dmo);
+                            added = true;
+                        }
+                        if (added) {
+                            java.util.Collections.sort(messages, (m1, m2) -> {
+                                int d1 = m1.messageOwner != null ? m1.messageOwner.date : 0;
+                                int d2 = m2.messageOwner != null ? m2.messageOwner.date : 0;
+                                if (d1 != d2) return Integer.compare(d2, d1);
+                                return Integer.compare(m2.getId(), m1.getId());
+                            });
+                            if (chatAdapter != null) {
+                                chatAdapter.notifyDataSetChanged(false);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
         checkShowBlur(false);
         activityResumeTime = System.currentTimeMillis();
         if (openImport && getSendMessagesHelper().getImportingHistory(dialog_id) != null) {
