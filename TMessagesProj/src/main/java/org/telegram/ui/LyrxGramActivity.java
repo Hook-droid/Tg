@@ -151,6 +151,8 @@ public class LyrxGramActivity extends BaseFragment {
         muteCard.setOnClickListener(v -> presentFragment(new LyrxMuteActivity()));
         center.addView(muteCard, menuParams(12));
 
+        center.addView(createArrowCard(context, R.drawable.msg_search, "Searching ID", "Open Profile By ID", () -> presentFragment(new LyrxSearchIdActivity())), menuParams(12));
+
         android.widget.ScrollView scroll = new android.widget.ScrollView(context);
         scroll.setVerticalScrollBarEnabled(false);
         scroll.setClipToPadding(false);
@@ -451,6 +453,54 @@ public class LyrxGramActivity extends BaseFragment {
             AndroidUtilities.cancelRunOnUIThread(proxyPingRunnable);
             proxyPingRunnable = null;
         }
+    }
+
+    private FrameLayout createArrowCard(Context context, int iconRes, String titleText, String descText, Runnable onClick) {
+        FrameLayout card = new FrameLayout(context);
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(0xFF1C1C1E);
+        cardBg.setCornerRadius(AndroidUtilities.dp(24));
+        cardBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
+        card.setBackground(cardBg);
+
+        FrameLayout iconBox = new FrameLayout(context);
+        GradientDrawable iconBg = new GradientDrawable();
+        iconBg.setColor(0xFF2C2C2E);
+        iconBg.setCornerRadius(AndroidUtilities.dp(16));
+        iconBg.setStroke(Math.round(AndroidUtilities.dpf2(0.7f)), 0x22FFFFFF);
+        iconBox.setBackground(iconBg);
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(iconRes);
+        icon.setColorFilter(0xFFFFFFFF);
+        iconBox.addView(icon, LayoutHelper.createFrame(26, 26, Gravity.CENTER));
+        card.addView(iconBox, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
+
+        LinearLayout textCol = new LinearLayout(context);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        TextView t = new TextView(context);
+        t.setText(titleText);
+        t.setTextColor(0xFFFFFFFF);
+        t.setTextSize(16);
+        t.setTypeface(AndroidUtilities.bold());
+        TextView d = new TextView(context);
+        d.setText(descText);
+        d.setTextColor(0xFF9E9E9E);
+        d.setTextSize(13);
+        textCol.addView(t);
+        textCol.addView(d);
+        card.addView(textCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT,
+                Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 10, 56, 10));
+
+        ImageView arrow = new ImageView(context);
+        arrow.setImageResource(R.drawable.msg_arrowright);
+        arrow.setColorFilter(0xFF9E9E9E);
+        card.addView(arrow, LayoutHelper.createFrame(18, 18, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+
+        card.setOnClickListener(v -> {
+            if (onClick != null) onClick.run();
+        });
+        card.setMinimumHeight(AndroidUtilities.dp(80));
+        return card;
     }
 
     private LinearLayout.LayoutParams menuParams(int topMarginDp) {
