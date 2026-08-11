@@ -10502,6 +10502,22 @@ public class MessagesController extends BaseController implements NotificationCe
         });
     }
 
+    public void lyrxSendOfflineNow() {
+        try {
+            if (statusRequest != 0) {
+                getConnectionsManager().cancelRequest(statusRequest, true);
+            }
+            TL_account.updateStatus req = new TL_account.updateStatus();
+            req.offline = true;
+            statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
+                lastStatusUpdateTime = System.currentTimeMillis();
+                offlineSent = true;
+                statusSettingState = 0;
+                statusRequest = 0;
+            });
+        } catch (Exception ignore) {}
+    }
+
     public void updateTimerProc() {
         long currentTime = System.currentTimeMillis();
 
@@ -10519,7 +10535,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         }
 
                         TL_account.updateStatus req = new TL_account.updateStatus();
-                        req.offline = false;
+                        req.offline = SharedConfig.lyrxInvisibleMode;
                         statusRequest = getConnectionsManager().sendRequest(req, (response, error) -> {
                             if (error == null) {
                                 lastStatusUpdateTime = System.currentTimeMillis();
@@ -10534,7 +10550,7 @@ public class MessagesController extends BaseController implements NotificationCe
                         });
                     }
                 }
-            } else if (SharedConfig.lyrxInvisibleMode && statusSettingState != 2 && Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 55000) {
+            } else if (SharedConfig.lyrxInvisibleMode && statusSettingState != 2 && Math.abs(System.currentTimeMillis() - lastStatusUpdateTime) >= 5000) {
                 statusSettingState = 2;
                 if (statusRequest != 0) {
                     getConnectionsManager().cancelRequest(statusRequest, true);

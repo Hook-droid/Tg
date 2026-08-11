@@ -305,6 +305,7 @@ public class SharedConfig {
     public static boolean playOrderReversed;
     public static boolean lyrxHideTyping;
     public static boolean lyrxInvisibleMode;
+    public static boolean lyrxHideLastSeen;
     public static boolean lyrxDontSendRead;
     public static boolean lyrxAnonymousMode;
     public static boolean lyrxShowDeleted;
@@ -545,6 +546,7 @@ public class SharedConfig {
             SharedPreferences lyrxPrefs = MessagesController.getGlobalMainSettings();
             lyrxHideTyping = lyrxPrefs.getBoolean("lyrxHideTyping", false);
             lyrxInvisibleMode = lyrxPrefs.getBoolean("lyrxInvisibleMode", false);
+            lyrxHideLastSeen = lyrxPrefs.getBoolean("lyrxHideLastSeen", false);
             lyrxDontSendRead = lyrxPrefs.getBoolean("lyrxDontSendRead", false);
             lyrxAnonymousMode = lyrxPrefs.getBoolean("lyrxAnonymousMode", false);
             lyrxShowDeleted = lyrxPrefs.getBoolean("lyrxShowDeleted", false);
