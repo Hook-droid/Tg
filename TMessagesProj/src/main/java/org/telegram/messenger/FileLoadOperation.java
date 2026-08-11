@@ -296,6 +296,15 @@ public class FileLoadOperation {
             maxDownloadRequestsBig = 4;
         }
         maxCdnParts = (int) (FileLoader.DEFAULT_MAX_FILE_SIZE / downloadChunkSizeBig);
+        if (SharedConfig.lyrxDownloadBoost == 1) {
+            maxDownloadRequests = Math.min(16, maxDownloadRequests * 2);
+            maxDownloadRequestsBig = Math.min(16, maxDownloadRequestsBig * 2);
+            maxDownloadRequestsAnimation = Math.min(16, maxDownloadRequestsAnimation * 2);
+        } else if (SharedConfig.lyrxDownloadBoost == 2) {
+            maxDownloadRequests = Math.min(32, maxDownloadRequests * 4);
+            maxDownloadRequestsBig = Math.min(32, maxDownloadRequestsBig * 4);
+            maxDownloadRequestsAnimation = Math.min(32, maxDownloadRequestsAnimation * 4);
+        }
     }
 
     public FileLoadOperation(ImageLocation imageLocation, Object parent, String extension, long size) {
