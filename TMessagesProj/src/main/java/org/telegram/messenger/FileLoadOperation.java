@@ -297,13 +297,13 @@ public class FileLoadOperation {
         }
         maxCdnParts = (int) (FileLoader.DEFAULT_MAX_FILE_SIZE / downloadChunkSizeBig);
         if (SharedConfig.lyrxDownloadBoost == 1) {
-            maxDownloadRequests = Math.min(16, maxDownloadRequests * 2);
-            maxDownloadRequestsBig = Math.min(16, maxDownloadRequestsBig * 2);
-            maxDownloadRequestsAnimation = Math.min(16, maxDownloadRequestsAnimation * 2);
+            maxDownloadRequests = Math.min(24, maxDownloadRequests * 4);
+            maxDownloadRequestsBig = Math.min(24, maxDownloadRequestsBig * 4);
+            maxDownloadRequestsAnimation = Math.min(24, maxDownloadRequestsAnimation * 4);
         } else if (SharedConfig.lyrxDownloadBoost == 2) {
-            maxDownloadRequests = Math.min(32, maxDownloadRequests * 4);
-            maxDownloadRequestsBig = Math.min(32, maxDownloadRequestsBig * 4);
-            maxDownloadRequestsAnimation = Math.min(32, maxDownloadRequestsAnimation * 4);
+            maxDownloadRequests = Math.min(48, maxDownloadRequests * 8);
+            maxDownloadRequestsBig = Math.min(48, maxDownloadRequestsBig * 8);
+            maxDownloadRequestsAnimation = Math.min(48, maxDownloadRequestsAnimation * 8);
         }
     }
 

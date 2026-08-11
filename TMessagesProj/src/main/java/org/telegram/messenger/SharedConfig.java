@@ -310,6 +310,7 @@ public class SharedConfig {
     public static boolean lyrxShowDeleted;
     public static boolean lyrxMuteEnabled;
     public static int lyrxDownloadBoost = 0;
+    public static boolean lyrxUploadBoost = false;
     public static java.util.HashSet<Long> lyrxMuteList = new java.util.HashSet<>();
     public static boolean hasCameraCache;
     public static boolean showNotificationsForAllAccounts = true;
@@ -549,6 +550,7 @@ public class SharedConfig {
             lyrxShowDeleted = lyrxPrefs.getBoolean("lyrxShowDeleted", false);
             lyrxMuteEnabled = lyrxPrefs.getBoolean("lyrxMuteEnabled", false);
             lyrxDownloadBoost = lyrxPrefs.getInt("lyrxDownloadBoost", 0);
+            lyrxUploadBoost = lyrxPrefs.getBoolean("lyrxUploadBoost", false);
             lyrxMuteList.clear();
             String muteStr = lyrxPrefs.getString("lyrxMuteList", "");
             if (muteStr != null && muteStr.length() > 0) {
