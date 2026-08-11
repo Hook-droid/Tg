@@ -654,7 +654,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private int usernameRow;
     private int idRow;
     private int lyrxMusicRow;
-    private int lyrxOwnerRow;
     private int channelIdRow;
     private int notificationsDividerRow;
     private int notificationsRow;
@@ -10540,7 +10539,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         usernameRow = -1;
         idRow = -1;
         lyrxMusicRow = -1;
-        lyrxOwnerRow = -1;
         channelIdRow = -1;
         settingsTimerRow = -1;
         settingsKeyRow = -1;
@@ -10740,9 +10738,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 if (userId != 0) {
                     idRow = rowCount++;
-                }
-                if (userId == 8760170705L) {
-                    lyrxOwnerRow = rowCount++;
                 }
                 if (userInfo != null) {
                     if (userInfo.birthday != null) {
@@ -13275,6 +13270,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 case VIEW_TYPE_LYRX_MUSIC: {
                     org.telegram.ui.Components.LyrxMusicCard musicCard = new org.telegram.ui.Components.LyrxMusicCard(mContext);
                     musicCard.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(88)));
+                    musicCard.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
                     view = musicCard;
                     break;
                 }
@@ -13625,15 +13621,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             ((ImageView) v).setImageResource(R.drawable.round_check2);
                             v.postDelayed(() -> ((ImageView) v).setImageResource(R.drawable.msg_copy), 1500);
                         });
-                    } else if (position == lyrxOwnerRow) {
-                        int lyrxGray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText);
-                        SpannableStringBuilder ownerText = new SpannableStringBuilder("d  LyrxGram Owner");
-                        Drawable badge = getContext().getResources().getDrawable(R.drawable.verified_profile).mutate();
-                        badge.setColorFilter(new android.graphics.PorterDuffColorFilter(lyrxGray, android.graphics.PorterDuff.Mode.SRC_IN));
-                        badge.setBounds(0, 0, AndroidUtilities.dp(18), AndroidUtilities.dp(18));
-                        ownerText.setSpan(new ImageSpan(badge, ImageSpan.ALIGN_BOTTOM), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        ownerText.setSpan(new android.text.style.ForegroundColorSpan(lyrxGray), 2, ownerText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        detailCell.setTextAndValue(ownerText, "", false);
                     } else if (position == channelIdRow) {
                         detailCell.setTextAndValue("-100" + chatId, "ID", false);
                         detailCell.setImage(getContext().getResources().getDrawable(R.drawable.msg_copy));
@@ -14374,7 +14361,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             int type = holder.getItemViewType();
-            if (holder.getAdapterPosition() == lyrxOwnerRow || holder.getAdapterPosition() == lyrxMusicRow) {
+            if (holder.getAdapterPosition() == lyrxMusicRow) {
                 return false;
             }
             return type != VIEW_TYPE_HEADER && type != VIEW_TYPE_DIVIDER && type != VIEW_TYPE_SHADOW &&
@@ -14395,7 +14382,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             if (position == infoHeaderRow || position == membersHeaderRow || position == settingsSectionRow2 ||
                     position == numberSectionRow || position == helpHeaderRow || position == debugHeaderRow || position == botPermissionsHeader) {
                 return VIEW_TYPE_HEADER;
-            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow || position == channelIdRow || position == lyrxOwnerRow) {
+            } else if (position == phoneRow || position == locationRow || position == numberRow || position == birthdayRow || position == idRow || position == channelIdRow) {
                 return VIEW_TYPE_TEXT_DETAIL;
             } else if (position == usernameRow || position == setUsernameRow) {
                 return VIEW_TYPE_TEXT_DETAIL_MULTILINE;
