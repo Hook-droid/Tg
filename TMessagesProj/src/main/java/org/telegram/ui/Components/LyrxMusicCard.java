@@ -38,12 +38,21 @@ public class LyrxMusicCard extends View {
     private int textColor = Color.WHITE;
     private int subTextColor = 0xB3FFFFFF;
 
+    private Runnable onCardClick;
+
+    public void setOnCardClick(Runnable r) {
+        this.onCardClick = r;
+    }
+
     public LyrxMusicCard(Context context) {
         super(context);
         coverImage = new ImageReceiver(this);
         coverImage.setRoundRadius(AndroidUtilities.dp(10));
         setClickable(true);
         setFocusable(true);
+        super.setOnClickListener(v -> {
+            if (onCardClick != null) onCardClick.run();
+        });
 
         titlePaint.setTypeface(AndroidUtilities.bold());
         titlePaint.setTextSize(AndroidUtilities.dp(16));
