@@ -49,6 +49,9 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         group.addView(makeCheck(context, "Invisible Mode", "Don't show your online status", SharedConfig.lyrxInvisibleMode, checked -> {
             SharedConfig.lyrxInvisibleMode = checked;
             save("lyrxInvisibleMode", checked);
+            if (checked) {
+                MessagesController.getInstance(currentAccount).lyrxSendOfflineNow();
+            }
         }));
         group.addView(divider(context));
         group.addView(makeCheck(context, "Unread Messages", "Don't send read receipts", SharedConfig.lyrxDontSendRead, checked -> {
@@ -56,9 +59,10 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
             save("lyrxDontSendRead", checked);
         }));
         group.addView(divider(context));
-        group.addView(makeCheck(context, "Full Anonymous", "Block screenshots and recording", SharedConfig.lyrxAnonymousMode, checked -> {
-            SharedConfig.lyrxAnonymousMode = checked;
-            save("lyrxAnonymousMode", checked);
+        group.addView(makeCheck(context, "Hide Last Seen", "Nobody can see your last seen", SharedConfig.lyrxHideLastSeen, checked -> {
+            SharedConfig.lyrxHideLastSeen = checked;
+            save("lyrxHideLastSeen", checked);
+            applyLastSeenPrivacy(checked);
         }));
 
         root.addView(group, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
@@ -80,6 +84,19 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         scroll.addView(root, new android.widget.FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         fragmentView = scroll;
         return fragmentView;
+    }
+
+    private void applyLastSeenPrivacy(boolean hide) {
+        try {
+            org.telegram.tgnet.tl.TL_account.setPrivacy req = new org.telegram.tgnet.tl.TL_account.setPrivacy();
+            req.key = new org.telegram.tgnet.TLRPC.TL_inputPrivacyKeyStatusTimestamp();
+            if (hide) {
+                req.rules.add(new org.telegram.tgnet.TLRPC.TL_inputPrivacyValueDisallowAll());
+            } else {
+                req.rules.add(new org.telegram.tgnet.TLRPC.TL_inputPrivacyValueAllowAll());
+            }
+            org.telegram.tgnet.ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {});
+        } catch (Exception ignore) {}
     }
 
     private interface OnCheck { void run(boolean checked); }

@@ -109,26 +109,66 @@ public class LyrxChatModesActivity extends BaseFragment {
         sgp.bottomMargin = AndroidUtilities.dp(16);
         root.addView(speedGroup, sgp);
 
-        LinearLayout group = new LinearLayout(context);
-        group.setOrientation(LinearLayout.VERTICAL);
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
-        bg.setCornerRadius(AndroidUtilities.dp(16));
-        group.setBackground(bg);
+        TextView delHeader = new TextView(context);
+        delHeader.setText("View Deleted Messages");
+        delHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        delHeader.setTextSize(15);
+        delHeader.setTypeface(AndroidUtilities.bold());
+        delHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(delHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout delGroup = new LinearLayout(context);
+        delGroup.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable delBg = new android.graphics.drawable.GradientDrawable();
+        delBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        delBg.setCornerRadius(AndroidUtilities.dp(16));
+        delGroup.setBackground(delBg);
 
         TextCheckCell showDeleted = new TextCheckCell(context);
-        showDeleted.setTextAndValueAndCheck("Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, false);
-        showDeleted.setOnClickListener(v -> presentFragment(new LyrxDeletedSettingsActivity()));
-        group.addView(showDeleted);
+        showDeleted.setTextAndValueAndCheck("Show Deleted", "Show deleted messages inside LyrxGram", SharedConfig.lyrxShowDeleted, true, true);
+        showDeleted.setOnClickListener(v -> {
+            boolean ns = !showDeleted.isChecked();
+            showDeleted.setChecked(ns);
+            SharedConfig.lyrxShowDeleted = ns;
+            MessagesController.getGlobalMainSettings().edit().putBoolean("lyrxShowDeleted", ns).apply();
+        });
+        delGroup.addView(showDeleted);
 
-        group.addView(divider(context));
+        delGroup.addView(divider(context));
+
+        TextCell clearCell = new TextCell(context);
+        clearCell.setTextAndIcon(clearStorageText(), R.drawable.msg_clear, false);
+        clearCell.setColors(Theme.key_text_RedRegular, Theme.key_text_RedRegular);
+        clearCell.setOnClickListener(v -> {
+            org.telegram.messenger.LyrxDeletedStorage.clearAll();
+            clearCell.setTextAndIcon(clearStorageText(), R.drawable.msg_clear, false);
+            clearCell.setColors(Theme.key_text_RedRegular, Theme.key_text_RedRegular);
+        });
+        delGroup.addView(clearCell);
+
+        root.addView(delGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView sidHeader = new TextView(context);
+        sidHeader.setText("Open Profile from ID");
+        sidHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        sidHeader.setTextSize(15);
+        sidHeader.setTypeface(AndroidUtilities.bold());
+        sidHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(sidHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout sidGroup = new LinearLayout(context);
+        sidGroup.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable sidBg = new android.graphics.drawable.GradientDrawable();
+        sidBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        sidBg.setCornerRadius(AndroidUtilities.dp(16));
+        sidGroup.setBackground(sidBg);
 
         TextCell searchId = new TextCell(context);
         searchId.setTextAndIcon("Searching ID", R.drawable.msg_search, false);
         searchId.setOnClickListener(v -> presentFragment(new LyrxSearchIdActivity()));
-        group.addView(searchId);
+        sidGroup.addView(searchId);
 
-        root.addView(group, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        root.addView(sidGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextView trHeader = new TextView(context);
         trHeader.setText("Translate Messages");
@@ -209,7 +249,14 @@ public class LyrxChatModesActivity extends BaseFragment {
         final String[] codes = {"app", "en", "tr", "ru", "de", "fr", "es", "ar", "it", "pt", "zh", "ja", "ko"};
         final String[] names = new String[codes.length];
         for (int i = 0; i < codes.length; i++) {
-            names[i] = codes[i].equals("app") ? "Follow App" : org.telegram.ui.Components.TranslateAlert2.capitalFirst(org.telegram.ui.Components.TranslateAlert2.languageName(codes[i]));
+            if (codes[i].equals("app")) {
+                names[i] = "Follow App";
+            } else {
+                java.util.Locale loc = new java.util.Locale(codes[i]);
+                String n = loc.getDisplayLanguage(loc);
+                if (n == null || n.length() == 0) n = codes[i];
+                names[i] = n.substring(0, 1).toUpperCase(loc) + (n.length() > 1 ? n.substring(1) : "");
+            }
         }
         org.telegram.ui.ActionBar.AlertDialog.Builder builder = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
         builder.setTitle("Target Language");
@@ -453,6 +500,11 @@ public class LyrxChatModesActivity extends BaseFragment {
             AndroidUtilities.cancelRunOnUIThread(proxyPingRunnable);
             proxyPingRunnable = null;
         }
+    }
+
+    private String clearStorageText() {
+        long size = org.telegram.messenger.LyrxDeletedStorage.totalSize();
+        return "Clear Deleted Storage (" + org.telegram.messenger.LyrxDeletedStorage.formatSize(size) + ")";
     }
 
     private View divider(Context context) {

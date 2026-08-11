@@ -14230,7 +14230,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         if (uf != null && uf.saved_music != null) {
                             ((org.telegram.ui.Components.LyrxMusicCard) holder.itemView).setMusicDocument(uf.saved_music);
                         }
-                        holder.itemView.setOnClickListener(v -> lyrxPlayProfileMusic());
+                        ((org.telegram.ui.Components.LyrxMusicCard) holder.itemView).setOnCardClick(() -> lyrxPlayProfileMusic());
                     }
                     break;
             }
