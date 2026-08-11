@@ -10717,15 +10717,16 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     unofficialSecurityRiskDividerRow = rowCount++;
                 }
 
+                if (userInfo != null && userInfo.saved_music != null) {
+                    lyrxMusicRow = rowCount++;
+                }
+
                 if (userInfo != null && (userInfo.flags2 & 64) != 0 && (profileChannelMessageFetcher == null || !profileChannelMessageFetcher.loaded || !profileChannelMessageFetcher.messageObjects.isEmpty())) {
                     final TLRPC.Chat channel = getMessagesController().getChat(userInfo.personal_channel_id);
                     if (channel != null && (ChatObject.isPublic(channel) || !ChatObject.isNotInChat(channel))) {
                         channelRow = rowCount++;
                         channelDividerRow = rowCount++;
                     }
-                }
-                if (userInfo != null && userInfo.saved_music != null) {
-                    lyrxMusicRow = rowCount++;
                 }
                 infoStartRow = rowCount;
                 if (!isBot && (hasPhone || !hasInfo)) {
@@ -13625,7 +13626,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             v.postDelayed(() -> ((ImageView) v).setImageResource(R.drawable.msg_copy), 1500);
                         });
                     } else if (position == lyrxOwnerRow) {
-                        int lyrxGray = ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText), 0x80);
+                        int lyrxGray = Theme.getColor(Theme.key_windowBackgroundWhiteGrayText);
                         SpannableStringBuilder ownerText = new SpannableStringBuilder("d  LyrxGram Owner");
                         Drawable badge = getContext().getResources().getDrawable(R.drawable.verified_profile).mutate();
                         badge.setColorFilter(new android.graphics.PorterDuffColorFilter(lyrxGray, android.graphics.PorterDuff.Mode.SRC_IN));
@@ -14373,6 +14374,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
             }
             int type = holder.getItemViewType();
+            if (holder.getAdapterPosition() == lyrxOwnerRow || holder.getAdapterPosition() == lyrxMusicRow) {
+                return false;
+            }
             return type != VIEW_TYPE_HEADER && type != VIEW_TYPE_DIVIDER && type != VIEW_TYPE_SHADOW &&
                     type != VIEW_TYPE_EMPTY && type != VIEW_TYPE_EMPTY2 && type != VIEW_TYPE_HEADER_EMPTY && type != VIEW_TYPE_BOTTOM_PADDING && type != VIEW_TYPE_SHARED_MEDIA &&
                     type != 9 && type != 10 && type != VIEW_TYPE_BOT_APP && type != VIEW_TYPE_TEXT2; // These are legacy ones, left for compatibility
