@@ -127,8 +127,8 @@ public class LyrxChatBackup {
                 if (tmpDir.exists()) deleteRecursive(tmpDir);
                 tmpDir.mkdirs();
 
-                StringBuilder txt = new StringBuilder();
                 SimpleDateFormat dateFmt = new SimpleDateFormat("dd-MM-yyyy", Locale.US);
+                SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm", Locale.US);
                 long selfId = UserConfig.getInstance(currentAccount).getClientUserId();
 
                 ArrayList<MessageObject> ordered = new ArrayList<>(messagesSnapshot);
@@ -136,53 +136,92 @@ public class LyrxChatBackup {
                     ordered.sort((a, b) -> Integer.compare(a.messageOwner.date, b.messageOwner.date));
                 } catch (Exception ignore) {}
 
-                ArrayList<File> mediaFiles = new ArrayList<>();
+                StringBuilder html = new StringBuilder();
+                html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\">");
+                html.append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">");
+                html.append("<title>").append(escape(safeName)).append("</title><style>");
+                html.append("*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,Segoe UI,Roboto,sans-serif}");
+                html.append("body{background:#e5ddd5;padding-bottom:40px}");
+                html.append(".header{position:sticky;top:0;background:#075e54;color:#fff;padding:14px 18px;box-shadow:0 2px 6px rgba(0,0,0,.2);z-index:10}");
+                html.append(".header h1{font-size:17px;font-weight:600}");
+                html.append(".header .sub{font-size:12px;opacity:.8;margin-top:2px}");
+                html.append(".chat{max-width:760px;margin:0 auto;padding:14px}");
+                html.append(".date-sep{text-align:center;margin:14px 0}");
+                html.append(".date-sep span{background:#d7f8c8;color:#4a4a4a;font-size:12px;padding:5px 12px;border-radius:8px;box-shadow:0 1px 1px rgba(0,0,0,.1)}");
+                html.append(".msg{max-width:75%;margin:4px 0;padding:7px 10px;border-radius:9px;position:relative;box-shadow:0 1px 1px rgba(0,0,0,.13);word-wrap:break-word;clear:both}");
+                html.append(".in{background:#fff;float:left;border-top-left-radius:2px}");
+                html.append(".out{background:#dcf8c6;float:right;border-top-right-radius:2px}");
+                html.append(".txt{font-size:14.5px;color:#303030;white-space:pre-wrap;line-height:1.35}");
+                html.append(".time{font-size:11px;color:#8a8a8a;float:right;margin:4px 0 -2px 10px}");
+                html.append(".msg img{max-width:100%;border-radius:6px;margin-top:4px;cursor:pointer;display:block}");
+                html.append(".file{display:flex;align-items:center;gap:8px;margin-top:4px;padding:8px;background:rgba(0,0,0,.05);border-radius:6px;text-decoration:none;color:#075e54;font-size:13px}");
+                html.append(".file .ic{width:30px;height:30px;border-radius:50%;background:#075e54;color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}");
+                html.append("</style></head><body>");
+                html.append("<div class=\"header\"><h1>").append(escape(safeName)).append("</h1>");
+                html.append("<div class=\"sub\">Backed up ").append(dateFmt.format(new Date())).append(" &middot; LyrxGram</div></div>");
+                html.append("<div class=\"chat\">");
+
                 int total = ordered.size();
-                String lastSender = null;
+                String lastDate = null;
 
                 for (int i = 0; i < total; i++) {
                     MessageObject mo = ordered.get(i);
                     if (mo == null || mo.messageOwner == null) continue;
+                    if (mo.messageOwner.action != null) continue;
 
                     long fromId = mo.getFromChatId();
                     boolean isSelf = fromId == selfId || mo.isOutOwner();
-                    String senderName;
-                    if (isSelf) {
-                        TLRPC.User me = MessagesController.getInstance(currentAccount).getUser(selfId);
-                        senderName = me != null ? UserObject.getUserName(me) : "Me";
-                    } else {
-                        senderName = safeName;
-                    }
 
                     String date = dateFmt.format(new Date(mo.messageOwner.date * 1000L));
+                    String time = timeFmt.format(new Date(mo.messageOwner.date * 1000L));
                     String text = mo.messageText != null ? mo.messageText.toString() : "";
 
-                    if (!senderName.equals(lastSender)) {
-                        if (lastSender != null) txt.append("\n");
-                        txt.append("{\"").append(date).append("\"\n");
-                        txt.append("\"").append(senderName).append("\"\n");
-                        if (text.length() > 0) txt.append("\"").append(text).append("\"\n");
-                        lastSender = senderName;
-                    } else {
-                        if (text.length() > 0) txt.append("\"").append(text).append("\"\n");
-                    }
-
+                    String mediaHtml = "";
                     try {
                         if (mo.getDocument() != null || mo.getPhoto() != null) {
                             File path = FileLoader.getInstance(currentAccount).getPathToMessage(mo.messageOwner);
                             if (path != null && path.exists() && path.length() > 0 && path.length() <= MAX_FILE_SIZE) {
-                                mediaFiles.add(path);
+                                String fileName = getBackupFileName(mo, path);
+                                boolean isImage = mo.getPhoto() != null || isImageName(fileName);
+                                String b64 = fileToBase64(path);
+                                if (b64 != null) {
+                                    if (isImage) {
+                                        mediaHtml = "<img src=\"data:image/*;base64," + b64 + "\" onclick=\"window.open(this.src)\">";
+                                    } else {
+                                        String mime = mo.getDocument() != null && mo.getDocument().mime_type != null ? mo.getDocument().mime_type : "application/octet-stream";
+                                        mediaHtml = "<a class=\"file\" href=\"data:" + mime + ";base64," + b64 + "\" download=\"" + escape(fileName) + "\"><span class=\"ic\">&#128196;</span>" + escape(fileName) + "</a>";
+                                    }
+                                }
                             }
                         }
                     } catch (Exception ignore) {}
 
-                    final int prog = (int) (((i + 1) / (float) Math.max(1, total)) * 70);
+                    if (text.length() == 0 && mediaHtml.length() == 0) continue;
+
+                    if (!date.equals(lastDate)) {
+                        html.append("<div class=\"date-sep\"><span>").append(date).append("</span></div>");
+                        lastDate = date;
+                    }
+
+                    html.append("<div class=\"msg ").append(isSelf ? "out" : "in").append("\">");
+                    if (text.length() > 0) {
+                        html.append("<div class=\"txt\">").append(escape(text)).append("</div>");
+                    }
+                    if (mediaHtml.length() > 0) {
+                        html.append(mediaHtml);
+                    }
+                    html.append("<span class=\"time\">").append(time).append("</span>");
+                    html.append("<div style=\"clear:both\"></div></div>");
+
+                    final int prog = (int) (((i + 1) / (float) Math.max(1, total)) * 95);
                     AndroidUtilities.runOnUIThread(() -> progressView.setProgress(prog / 100f, true));
                 }
 
-                File msgFile = new File(tmpDir, "Messages.txt");
-                FileOutputStream fos = new FileOutputStream(msgFile);
-                fos.write(txt.toString().getBytes("UTF-8"));
+                html.append("</div></body></html>");
+
+                File htmlFile = new File(tmpDir, "chat.html");
+                FileOutputStream fos = new FileOutputStream(htmlFile);
+                fos.write(html.toString().getBytes("UTF-8"));
                 fos.close();
 
                 File zipFile = new File(lyrxDir, safeName + "-" + dateFmt.format(new Date()) + ".zip");
@@ -190,18 +229,8 @@ public class LyrxChatBackup {
 
                 ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zipFile));
                 zos.setLevel(Deflater.BEST_COMPRESSION);
-
-                addFileToZip(zos, msgFile, "Messages.txt");
-
-                int mediaCount = mediaFiles.size();
-                for (int i = 0; i < mediaCount; i++) {
-                    File mf = mediaFiles.get(i);
-                    try {
-                        addFileToZip(zos, mf, "media/" + mf.getName());
-                    } catch (Exception ignore) {}
-                    final int prog = 70 + (int) (((i + 1) / (float) Math.max(1, mediaCount)) * 30);
-                    AndroidUtilities.runOnUIThread(() -> progressView.setProgress(prog / 100f, true));
-                }
+                addFileToZip(zos, htmlFile, "chat.html");
+                AndroidUtilities.runOnUIThread(() -> progressView.setProgress(1f, true));
 
                 zos.close();
                 deleteRecursive(tmpDir);
@@ -224,6 +253,62 @@ public class LyrxChatBackup {
             });
         });
         worker.start();
+    }
+
+    private static String escape(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private static boolean isImageName(String name) {
+        if (name == null) return false;
+        String n = name.toLowerCase();
+        return n.endsWith(".jpg") || n.endsWith(".jpeg") || n.endsWith(".png") || n.endsWith(".webp") || n.endsWith(".gif") || n.endsWith(".bmp");
+    }
+
+    private static String fileToBase64(File file) {
+        try {
+            FileInputStream fis = new FileInputStream(file);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = fis.read(buffer)) > 0) {
+                baos.write(buffer, 0, len);
+            }
+            fis.close();
+            return android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static String getBackupFileName(MessageObject mo, File path) {
+        try {
+            TLRPC.Document doc = mo.getDocument();
+            if (doc != null) {
+                String name = FileLoader.getDocumentFileName(doc);
+                if (name != null && name.trim().length() > 0) {
+                    return sanitize(name);
+                }
+                String ext = "";
+                if (doc.mime_type != null) {
+                    if (doc.mime_type.equals("video/mp4")) ext = ".mp4";
+                    else if (doc.mime_type.equals("audio/ogg")) ext = ".ogg";
+                    else if (doc.mime_type.equals("audio/mpeg")) ext = ".mp3";
+                }
+                return "file_" + mo.getId() + ext;
+            }
+            if (mo.getPhoto() != null) {
+                return "photo_" + mo.getId() + ".jpg";
+            }
+        } catch (Exception ignore) {}
+        String fallback = path.getName();
+        if (fallback.indexOf('.') < 0) fallback = fallback + ".dat";
+        return fallback;
+    }
+
+    private static String sanitize(String name) {
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
     private static boolean hasStoragePermission(Context context) {
