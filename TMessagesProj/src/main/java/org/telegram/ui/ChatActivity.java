@@ -1667,6 +1667,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int charge_fee = 72;
 
     private final static int chat_menu_topic_create = 73;
+    private final static int lyrx_chat_backup = 9911;
 
     private final static int id_chat_compose_panel = 1000;
 
@@ -3668,6 +3669,11 @@ public class ChatActivity extends BaseFragment implements
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(final int id) {
+                if (id == lyrx_chat_backup) {
+                    String peerName = currentUser != null ? UserObject.getUserName(currentUser) : "Chat";
+                    LyrxChatBackup.showBackupDialog(ChatActivity.this, dialog_id, peerName);
+                    return;
+                }
                 if (id == -1) {
                     if (isInPollAddOptionMode()) {
                         pollAddOptionModeClose();
@@ -4216,6 +4222,11 @@ public class ChatActivity extends BaseFragment implements
 
         if (UserObject.isBotForumWithEditableTopics(currentUser) && chatMode == 0) {
             topicCreateItem = menu.addItem(chat_menu_topic_create, R.drawable.menu_topic_add_30);
+        }
+
+        if (currentUser != null && currentEncryptedChat == null && chatMode == 0 && !isReport()) {
+            org.telegram.ui.ActionBar.ActionBarMenuItem backupItem = menu.addItem(lyrx_chat_backup, R.drawable.msg_message);
+            backupItem.setContentDescription("Chat Backup");
         }
 
         if (currentEncryptedChat == null && (chatMode == 0 || chatMode == MODE_SAVED || chatMode == MODE_SUGGESTIONS) && !isReport()) {
