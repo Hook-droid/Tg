@@ -4225,7 +4225,7 @@ public class ChatActivity extends BaseFragment implements
         }
 
         if (currentUser != null && currentEncryptedChat == null && chatMode == 0 && !isReport()) {
-            org.telegram.ui.ActionBar.ActionBarMenuItem backupItem = menu.addItem(lyrx_chat_backup, R.drawable.msg_message);
+            org.telegram.ui.ActionBar.ActionBarMenuItem backupItem = menu.addItem(lyrx_chat_backup, R.drawable.msg_saved);
             backupItem.setContentDescription("Chat Backup");
         }
 
