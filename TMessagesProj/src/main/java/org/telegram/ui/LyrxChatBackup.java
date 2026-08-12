@@ -97,9 +97,6 @@ public class LyrxChatBackup {
             messagesSnapshot = new ArrayList<>();
         }
 
-        AlertDialog progressDialog = new AlertDialog(context, AlertDialog.ALERT_TYPE_MESSAGE);
-        progressDialog.setCanCancel(false);
-
         FrameLayout container = new FrameLayout(context);
         TextView titleView = new TextView(context);
         titleView.setText("Chat Is Being Backed Up, Please Wait.");
@@ -112,7 +109,10 @@ public class LyrxChatBackup {
         progressView.setBackColor(0x33FFFFFF);
         container.addView(progressView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 4, 0, 24, 64, 24, 24));
 
-        progressDialog.setView(container);
+        AlertDialog.Builder progressBuilder = new AlertDialog.Builder(context);
+        progressBuilder.setView(container);
+        AlertDialog progressDialog = progressBuilder.create();
+        progressDialog.setCanCancel(false);
         progressDialog.show();
 
         final String safeName = (peerName == null || peerName.trim().length() == 0) ? "Chat" : peerName.trim();
