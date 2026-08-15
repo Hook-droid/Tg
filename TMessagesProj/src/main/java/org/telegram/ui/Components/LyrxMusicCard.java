@@ -39,9 +39,30 @@ public class LyrxMusicCard extends View {
     private int subTextColor = 0xB3FFFFFF;
 
     private Runnable onCardClick;
+    private float downX, downY;
 
     public void setOnCardClick(Runnable r) {
         this.onCardClick = r;
+    }
+
+    @Override
+    public boolean onTouchEvent(android.view.MotionEvent event) {
+        switch (event.getAction()) {
+            case android.view.MotionEvent.ACTION_DOWN:
+                downX = event.getX();
+                downY = event.getY();
+                return true;
+            case android.view.MotionEvent.ACTION_UP:
+                float dx = Math.abs(event.getX() - downX);
+                float dy = Math.abs(event.getY() - downY);
+                if (dx < AndroidUtilities.dp(10) && dy < AndroidUtilities.dp(10)) {
+                    if (onCardClick != null) {
+                        onCardClick.run();
+                    }
+                }
+                return true;
+        }
+        return true;
     }
 
     public LyrxMusicCard(Context context) {
@@ -50,9 +71,6 @@ public class LyrxMusicCard extends View {
         coverImage.setRoundRadius(AndroidUtilities.dp(10));
         setClickable(true);
         setFocusable(true);
-        super.setOnClickListener(v -> {
-            if (onCardClick != null) onCardClick.run();
-        });
 
         titlePaint.setTypeface(AndroidUtilities.bold());
         titlePaint.setTextSize(AndroidUtilities.dp(16));
@@ -152,7 +170,7 @@ public class LyrxMusicCard extends View {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         int pad = AndroidUtilities.dp(12);
-        cardRect.set(pad, AndroidUtilities.dp(4), getWidth() - pad, getHeight() - AndroidUtilities.dp(4));
+        cardRect.set(pad, AndroidUtilities.dp(8), getWidth() - pad, getHeight() - AndroidUtilities.dp(12));
         bgPaint.setColor(cardColor);
         float radius = AndroidUtilities.dp(16);
         canvas.drawRoundRect(cardRect, radius, radius, bgPaint);
