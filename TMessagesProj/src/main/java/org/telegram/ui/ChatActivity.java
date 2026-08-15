@@ -30526,6 +30526,72 @@ public class ChatActivity extends BaseFragment implements
         if (finalSelectedObject == null && (selectedMessagesIds[0].size() + selectedMessagesIds[1].size()) == 0) {
             return;
         }
+
+        if (finalSelectedObject != null && (currentUser != null || currentChat != null) && currentEncryptedChat == null) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
+            builder.setTitle(LocaleController.getString(R.string.DeleteSingleMessagesTitle));
+            builder.setMessage(LocaleController.getString(R.string.AreYouSureDeleteSingleMessage));
+            final boolean[] deleteAll = new boolean[]{false};
+            FrameLayout frameLayout = new FrameLayout(getParentActivity());
+            org.telegram.ui.Cells.CheckBoxCell cell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
+            cell.setBackground(Theme.getSelectorDrawable(false));
+            cell.setText("Delete All Messages", "", false, false);
+            cell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
+            frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
+            cell.setOnClickListener(v -> {
+                boolean ns = !cell.isChecked();
+                cell.setChecked(ns, true);
+                deleteAll[0] = ns;
+            });
+            builder.setView(frameLayout);
+            builder.setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> {
+                if (deleteAll[0]) {
+                    lyrxDeleteAllMyMessages();
+                } else {
+                    ArrayList<Integer> ids = new ArrayList<>();
+                    ids.add(finalSelectedObject.getId());
+                    getMessagesController().deleteMessages(ids, null, currentEncryptedChat, dialog_id, (int) getTopicId(), true, chatMode);
+                    hideActionMode();
+                    updatePinnedMessageView(true);
+                }
+            });
+            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+            AlertDialog dialog = builder.create();
+            showDialog(dialog);
+            TextView btn = (TextView) dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+            if (btn != null) btn.setTextColor(Theme.getColor(Theme.key_text_RedBold));
+            return;
+        }
+
+        AlertsCreator.createDeleteMessagesAlert(this, currentUser, currentChat, currentEncryptedChat, chatInfo, mergeDialogId, finalSelectedObject, selectedMessagesIds, finalSelectedGroup, (int) getTopicId(), chatMode, null, () -> {
+            hideActionMode();
+            updatePinnedMessageView(true);
+        }, hideDimAfter ? () -> dimBehindView(false) : null, themeDelegate);
+    }
+
+    private void lyrxDeleteAllMyMessages() {
+        try {
+            ArrayList<Integer> ids = new ArrayList<>();
+            for (int a = 0; a < messages.size(); a++) {
+                MessageObject mo = messages.get(a);
+                if (mo != null && mo.isOutOwner() && !mo.isSending() && mo.getId() > 0) {
+                    ids.add(mo.getId());
+                }
+            }
+            if (!ids.isEmpty()) {
+                getMessagesController().deleteMessages(ids, null, currentEncryptedChat, dialog_id, (int) getTopicId(), true, chatMode);
+            }
+            hideActionMode();
+            updatePinnedMessageView(true);
+        } catch (Exception e) {
+            FileLog.e(e);
+        }
+    }
+
+    private void createDeleteMessagesAlertOld(final MessageObject finalSelectedObject, final MessageObject.GroupedMessages finalSelectedGroup, boolean hideDimAfter) {
+        if (finalSelectedObject == null && (selectedMessagesIds[0].size() + selectedMessagesIds[1].size()) == 0) {
+            return;
+        }
         AlertsCreator.createDeleteMessagesAlert(this, currentUser, currentChat, currentEncryptedChat, chatInfo, mergeDialogId, finalSelectedObject, selectedMessagesIds, finalSelectedGroup, (int) getTopicId(), chatMode, null, () -> {
             hideActionMode();
             updatePinnedMessageView(true);
