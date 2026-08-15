@@ -30527,15 +30527,28 @@ public class ChatActivity extends BaseFragment implements
             return;
         }
 
-        if (finalSelectedObject != null && (currentUser != null || currentChat != null) && currentEncryptedChat == null) {
+        boolean canShowDeleteAll = (currentUser != null || currentChat != null) && currentEncryptedChat == null && chatMode == 0;
+        if (canShowDeleteAll) {
+            final ArrayList<Integer> selectedIds = new ArrayList<>();
+            if (finalSelectedObject != null) {
+                selectedIds.add(finalSelectedObject.getId());
+            } else {
+                for (int a = 0; a < 2; a++) {
+                    for (int b = 0; b < selectedMessagesIds[a].size(); b++) {
+                        selectedIds.add(selectedMessagesIds[a].keyAt(b));
+                    }
+                }
+            }
+
             AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
-            builder.setTitle(LocaleController.getString(R.string.DeleteSingleMessagesTitle));
-            builder.setMessage(LocaleController.getString(R.string.AreYouSureDeleteSingleMessage));
+            builder.setTitle(LocaleController.getString(R.string.Delete));
+            builder.setMessage(LocaleController.getString(R.string.AreYouSureDeleteFewMessages));
             final boolean[] deleteAll = new boolean[]{false};
             FrameLayout frameLayout = new FrameLayout(getParentActivity());
             org.telegram.ui.Cells.CheckBoxCell cell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
             cell.setBackground(Theme.getSelectorDrawable(false));
             cell.setText("Delete All Messages", "", false, false);
+            cell.setTextColor(0xFFFFB020);
             cell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
             frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
             cell.setOnClickListener(v -> {
@@ -30548,9 +30561,7 @@ public class ChatActivity extends BaseFragment implements
                 if (deleteAll[0]) {
                     lyrxDeleteAllMyMessages();
                 } else {
-                    ArrayList<Integer> ids = new ArrayList<>();
-                    ids.add(finalSelectedObject.getId());
-                    getMessagesController().deleteMessages(ids, null, currentEncryptedChat, dialog_id, (int) getTopicId(), true, chatMode);
+                    getMessagesController().deleteMessages(selectedIds, null, currentEncryptedChat, dialog_id, (int) getTopicId(), true, chatMode);
                     hideActionMode();
                     updatePinnedMessageView(true);
                 }

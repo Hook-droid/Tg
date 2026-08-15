@@ -13269,7 +13269,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 }
                 case VIEW_TYPE_LYRX_MUSIC: {
                     org.telegram.ui.Components.LyrxMusicCard musicCard = new org.telegram.ui.Components.LyrxMusicCard(mContext);
-                    musicCard.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(100)));
+                    musicCard.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(112)));
                     musicCard.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
                     view = musicCard;
                     break;
