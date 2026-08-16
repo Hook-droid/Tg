@@ -30530,38 +30530,75 @@ public class ChatActivity extends BaseFragment implements
         boolean canShowDeleteAll = (currentUser != null || currentChat != null) && currentEncryptedChat == null && chatMode == 0;
         if (canShowDeleteAll) {
             final ArrayList<Integer> selectedIds = new ArrayList<>();
+            boolean allMine = true;
             if (finalSelectedObject != null) {
                 selectedIds.add(finalSelectedObject.getId());
+                if (!finalSelectedObject.isOutOwner()) {
+                    allMine = false;
+                }
             } else {
                 for (int a = 0; a < 2; a++) {
                     for (int b = 0; b < selectedMessagesIds[a].size(); b++) {
                         selectedIds.add(selectedMessagesIds[a].keyAt(b));
+                        MessageObject mo = selectedMessagesIds[a].valueAt(b);
+                        if (mo != null && !mo.isOutOwner()) {
+                            allMine = false;
+                        }
                     }
                 }
+            }
+
+            if (!allMine) {
+                AlertsCreator.createDeleteMessagesAlert(this, currentUser, currentChat, currentEncryptedChat, chatInfo, mergeDialogId, finalSelectedObject, selectedMessagesIds, finalSelectedGroup, (int) getTopicId(), chatMode, null, () -> {
+                    hideActionMode();
+                    updatePinnedMessageView(true);
+                }, hideDimAfter ? () -> dimBehindView(false) : null, themeDelegate);
+                return;
             }
 
             AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
             builder.setTitle(LocaleController.getString(R.string.Delete));
             builder.setMessage(LocaleController.getString(R.string.AreYouSureDeleteFewMessages));
             final boolean[] deleteAll = new boolean[]{false};
-            FrameLayout frameLayout = new FrameLayout(getParentActivity());
+            final boolean[] revoke = new boolean[]{false};
+            LinearLayout ll = new LinearLayout(getParentActivity());
+            ll.setOrientation(LinearLayout.VERTICAL);
+
+            boolean canRevoke = currentUser != null && currentEncryptedChat == null;
+            org.telegram.ui.Cells.CheckBoxCell revokeCell = null;
+            if (canRevoke) {
+                String name = currentUser != null ? UserObject.getFirstName(currentUser) : "";
+                revokeCell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
+                revokeCell.setBackground(Theme.getSelectorDrawable(false));
+                revokeCell.setText("Also Delete For " + name, "", false, false);
+                revokeCell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
+                ll.addView(revokeCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+                final org.telegram.ui.Cells.CheckBoxCell fRevoke = revokeCell;
+                fRevoke.setOnClickListener(v -> {
+                    boolean ns = !fRevoke.isChecked();
+                    fRevoke.setChecked(ns, true);
+                    revoke[0] = ns;
+                });
+            }
+
             org.telegram.ui.Cells.CheckBoxCell cell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
             cell.setBackground(Theme.getSelectorDrawable(false));
             cell.setText("Delete All Messages", "", false, false);
             cell.setTextColor(0xFFFFB020);
             cell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
-            frameLayout.addView(cell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
+            ll.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
             cell.setOnClickListener(v -> {
                 boolean ns = !cell.isChecked();
                 cell.setChecked(ns, true);
                 deleteAll[0] = ns;
             });
-            builder.setView(frameLayout);
+            builder.setView(ll);
             builder.setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> {
                 if (deleteAll[0]) {
                     lyrxDeleteAllMyMessages();
                 } else {
-                    getMessagesController().deleteMessages(selectedIds, null, currentEncryptedChat, dialog_id, (int) getTopicId(), true, chatMode);
+                    boolean forAll = revoke[0] || currentChat != null;
+                    getMessagesController().deleteMessages(selectedIds, null, currentEncryptedChat, dialog_id, (int) getTopicId(), forAll, chatMode);
                     hideActionMode();
                     updatePinnedMessageView(true);
                 }
