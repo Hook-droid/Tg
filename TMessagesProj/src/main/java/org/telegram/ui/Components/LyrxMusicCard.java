@@ -5,10 +5,11 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
-import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -22,48 +23,32 @@ import org.telegram.ui.ActionBar.Theme;
 
 public class LyrxMusicCard extends View {
 
+    private static final int CARD_HEIGHT = 92;
+    private static final int CARD_TOP = 6;
+    private static final int CARD_BOTTOM_GAP = 10;
+    private static final int SIDE_PADDING = 12;
+    private static final int COVER_SIZE = 60;
+
     private final ImageReceiver coverImage;
     private final RectF cardRect = new RectF();
     private final RectF coverRect = new RectF();
+    private final RectF playRect = new RectF();
+    private final Path playPath = new Path();
     private final Paint bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint playBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint playIconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint titlePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final TextPaint authorPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
-    private final TextPaint albumPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
 
     private String titleText = "";
     private String authorText = "";
-    private String albumText = "";
 
-    private int cardColor = 0xFF2B2B33;
+    private int cardColor;
     private int textColor = Color.WHITE;
     private int subTextColor = 0xB3FFFFFF;
 
     private Runnable onCardClick;
     private float downX, downY;
-
-    public void setOnCardClick(Runnable r) {
-        this.onCardClick = r;
-    }
-
-    @Override
-    public boolean onTouchEvent(android.view.MotionEvent event) {
-        switch (event.getAction()) {
-            case android.view.MotionEvent.ACTION_DOWN:
-                downX = event.getX();
-                downY = event.getY();
-                return true;
-            case android.view.MotionEvent.ACTION_UP:
-                float dx = Math.abs(event.getX() - downX);
-                float dy = Math.abs(event.getY() - downY);
-                if (dx < AndroidUtilities.dp(10) && dy < AndroidUtilities.dp(10)) {
-                    if (onCardClick != null) {
-                        onCardClick.run();
-                    }
-                }
-                return true;
-        }
-        return true;
-    }
 
     public LyrxMusicCard(Context context) {
         super(context);
@@ -73,9 +58,11 @@ public class LyrxMusicCard extends View {
         setFocusable(true);
 
         titlePaint.setTypeface(AndroidUtilities.bold());
-        titlePaint.setTextSize(AndroidUtilities.dp(16));
-        authorPaint.setTextSize(AndroidUtilities.dp(14));
-        albumPaint.setTextSize(AndroidUtilities.dp(13));
+        titlePaint.setTextSize(AndroidUtilities.dp(15));
+        authorPaint.setTextSize(AndroidUtilities.dp(13));
+        playIconPaint.setStyle(Paint.Style.FILL);
+
+        applyColors(0, false);
 
         coverImage.setDelegate((imageReceiver, set, thumb, memCache) -> {
             if (set) {
@@ -84,74 +71,94 @@ public class LyrxMusicCard extends View {
         });
     }
 
+    public void setOnCardClick(Runnable r) {
+        this.onCardClick = r;
+    }
+
     public void setMusicDocument(TLRPC.Document document) {
         if (document == null) {
             setVisibility(GONE);
             return;
         }
         setVisibility(VISIBLE);
-        CharSequence a = getAuthor(document);
-        CharSequence t = getTitle(document);
+        CharSequence a = ProfileMusicView.getAuthor(document);
+        CharSequence t = ProfileMusicView.getTitle(document);
         authorText = a == null ? "" : a.toString();
         titleText = t == null ? "" : t.toString();
-        albumText = getAlbum(document);
 
         String artworkUrl = MessageObject.getArtworkUrl(document, false);
         if (!TextUtils.isEmpty(artworkUrl)) {
             coverImage.setImage(artworkUrl, null, null, "jpg", 0);
         } else {
             coverImage.setImageBitmap((android.graphics.drawable.Drawable) null);
-            extractColor();
+            applyColors(0, false);
         }
         invalidate();
     }
 
     private void extractColor() {
+        int dominant = 0;
+        boolean has = false;
         try {
             Bitmap bmp = coverImage.getBitmap();
             if (bmp != null && !bmp.isRecycled()) {
-                int dominant = AndroidUtilities.getDominantColor(bmp);
-                float[] hsv = new float[3];
-                Color.colorToHSV(dominant, hsv);
-                hsv[1] = Math.min(1f, hsv[1] * 1.1f);
-                hsv[2] = Math.min(0.55f, hsv[2] * 0.7f);
-                cardColor = Color.HSVToColor(hsv);
-            } else {
-                cardColor = 0xFF2B2B33;
+                dominant = AndroidUtilities.getDominantColor(bmp);
+                has = true;
             }
-        } catch (Exception e) {
-            cardColor = 0xFF2B2B33;
+        } catch (Exception ignore) {
         }
-        boolean darkBg = AndroidUtilities.computePerceivedBrightness(cardColor) < 0.6f;
-        textColor = darkBg ? Color.WHITE : Color.BLACK;
-        subTextColor = ColorUtils.setAlphaComponent(textColor, 0xB3);
+        applyColors(dominant, has);
         invalidate();
     }
 
-    private String getAlbum(TLRPC.Document document) {
-        if (document == null) return "";
-        for (int a = 0; a < document.attributes.size(); a++) {
-            TLRPC.DocumentAttribute attribute = document.attributes.get(a);
-            if (attribute instanceof TLRPC.TL_documentAttributeAudio) {
-                return "";
-            }
+    private void applyColors(int dominant, boolean hasCover) {
+        int base = Theme.getColor(Theme.key_windowBackgroundWhite);
+        boolean darkTheme = AndroidUtilities.computePerceivedBrightness(base) < 0.5f;
+
+        if (hasCover) {
+            float[] hsv = new float[3];
+            Color.colorToHSV(dominant, hsv);
+            hsv[1] = Math.min(hsv[1], 0.5f);
+            hsv[2] = darkTheme ? 0.34f : 0.9f;
+            int tint = Color.HSVToColor(hsv);
+            cardColor = ColorUtils.blendARGB(base, tint, darkTheme ? 0.75f : 0.55f);
+        } else {
+            cardColor = ColorUtils.blendARGB(base, Theme.getColor(Theme.key_windowBackgroundWhiteBlueText), darkTheme ? 0.14f : 0.1f);
         }
-        return "";
+
+        boolean darkCard = AndroidUtilities.computePerceivedBrightness(cardColor) < 0.6f;
+        textColor = darkCard ? Color.WHITE : 0xFF14161A;
+        subTextColor = ColorUtils.setAlphaComponent(textColor, 0xA8);
     }
 
-    private CharSequence getAuthor(TLRPC.Document document) {
-        return ProfileMusicView.getAuthor(document);
-    }
-
-    private CharSequence getTitle(TLRPC.Document document) {
-        return ProfileMusicView.getTitle(document);
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                downX = event.getX();
+                downY = event.getY();
+                setAlpha(0.75f);
+                return true;
+            case MotionEvent.ACTION_UP:
+                setAlpha(1f);
+                float dx = Math.abs(event.getX() - downX);
+                float dy = Math.abs(event.getY() - downY);
+                if (dx < AndroidUtilities.dp(10) && dy < AndroidUtilities.dp(10) && onCardClick != null) {
+                    onCardClick.run();
+                }
+                return true;
+            case MotionEvent.ACTION_CANCEL:
+                setAlpha(1f);
+                return true;
+        }
+        return true;
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(widthMeasureSpec), MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(88), MeasureSpec.EXACTLY)
+            MeasureSpec.makeMeasureSpec(AndroidUtilities.dp(CARD_HEIGHT), MeasureSpec.EXACTLY)
         );
     }
 
@@ -169,23 +176,42 @@ public class LyrxMusicCard extends View {
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
-        int pad = AndroidUtilities.dp(12);
-        cardRect.set(pad, AndroidUtilities.dp(8), getWidth() - pad, getHeight() - AndroidUtilities.dp(18));
+        final int pad = AndroidUtilities.dp(SIDE_PADDING);
+        cardRect.set(pad, AndroidUtilities.dp(CARD_TOP), getWidth() - pad, getHeight() - AndroidUtilities.dp(CARD_BOTTOM_GAP));
+        final float centerY = cardRect.centerY();
+        final float radius = AndroidUtilities.dp(14);
+
         bgPaint.setColor(cardColor);
-        float radius = AndroidUtilities.dp(16);
         canvas.drawRoundRect(cardRect, radius, radius, bgPaint);
 
-        int coverSize = AndroidUtilities.dp(68);
-        int coverLeft = pad + AndroidUtilities.dp(10);
-        int coverTop = (getHeight() - coverSize) / 2;
+        final float coverSize = AndroidUtilities.dp(COVER_SIZE);
+        final float coverLeft = cardRect.left + AndroidUtilities.dp(10);
+        final float coverTop = centerY - coverSize / 2f;
         coverRect.set(coverLeft, coverTop, coverLeft + coverSize, coverTop + coverSize);
         coverImage.setImageCoords(coverRect.left, coverRect.top, coverRect.width(), coverRect.height());
         coverImage.draw(canvas);
 
-        int textLeft = coverLeft + coverSize + AndroidUtilities.dp(14);
-        int textRight = (int) cardRect.right - AndroidUtilities.dp(14);
-        int availWidth = textRight - textLeft;
-        if (availWidth < AndroidUtilities.dp(20)) return;
+        final float playRadius = AndroidUtilities.dp(16);
+        final float playCx = cardRect.right - AndroidUtilities.dp(14) - playRadius;
+        playRect.set(playCx - playRadius, centerY - playRadius, playCx + playRadius, centerY + playRadius);
+        playBgPaint.setColor(ColorUtils.setAlphaComponent(textColor, 0x24));
+        canvas.drawCircle(playCx, centerY, playRadius, playBgPaint);
+
+        final float triSize = AndroidUtilities.dp(11);
+        playPath.reset();
+        playPath.moveTo(playCx - triSize * 0.35f, centerY - triSize / 2f);
+        playPath.lineTo(playCx + triSize * 0.55f, centerY);
+        playPath.lineTo(playCx - triSize * 0.35f, centerY + triSize / 2f);
+        playPath.close();
+        playIconPaint.setColor(textColor);
+        canvas.drawPath(playPath, playIconPaint);
+
+        final float textLeft = coverRect.right + AndroidUtilities.dp(13);
+        final float textRight = playRect.left - AndroidUtilities.dp(10);
+        final float availWidth = textRight - textLeft;
+        if (availWidth < AndroidUtilities.dp(20)) {
+            return;
+        }
 
         titlePaint.setColor(textColor);
         authorPaint.setColor(subTextColor);
@@ -193,10 +219,7 @@ public class LyrxMusicCard extends View {
         CharSequence title = TextUtils.ellipsize(titleText, titlePaint, availWidth, TextUtils.TruncateAt.END);
         CharSequence author = TextUtils.ellipsize(authorText, authorPaint, availWidth, TextUtils.TruncateAt.END);
 
-        float titleY = getHeight() / 2f - AndroidUtilities.dp(4);
-        float authorY = getHeight() / 2f + AndroidUtilities.dp(16);
-
-        canvas.drawText(title, 0, title.length(), textLeft, titleY, titlePaint);
-        canvas.drawText(author, 0, author.length(), textLeft, authorY, authorPaint);
+        canvas.drawText(title, 0, title.length(), textLeft, centerY - AndroidUtilities.dp(3), titlePaint);
+        canvas.drawText(author, 0, author.length(), textLeft, centerY + AndroidUtilities.dp(17), authorPaint);
     }
 }
