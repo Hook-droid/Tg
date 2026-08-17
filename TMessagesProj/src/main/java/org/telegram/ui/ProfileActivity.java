@@ -385,8 +385,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private ProfileActionsView actionsView;
     private MessagesController.SavedMusicList savedMusicList;
     private ProfileMusicView musicView;
-    private TextView lyrxOwnerBadgeView;
-    private static final long LYRX_OWNER_ID = 8760170705L;
     private AnimatedStatusView animatedStatusView;
     private AvatarImageView avatarImage;
     private View avatarOverlay;
@@ -5478,23 +5476,6 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             avatarsBlurView.setMusicView(musicView);
             avatarContainer2.addView(musicView, LayoutHelper.createFrame(-1, -1));
         }
-        if (lyrxOwnerBadge()) {
-            lyrxOwnerBadgeView = new TextView(context);
-            lyrxOwnerBadgeView.setText("LyrxGram Owner");
-            lyrxOwnerBadgeView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-            lyrxOwnerBadgeView.setTextColor(0x99FFFFFF);
-            lyrxOwnerBadgeView.setGravity(Gravity.CENTER);
-            lyrxOwnerBadgeView.setSingleLine(true);
-            Drawable lyrxTick = ContextCompat.getDrawable(context, R.drawable.verified_profile);
-            if (lyrxTick != null) {
-                lyrxTick = lyrxTick.mutate();
-                lyrxTick.setColorFilter(new PorterDuffColorFilter(0x99FFFFFF, PorterDuff.Mode.SRC_IN));
-                lyrxTick.setBounds(0, 0, dp(15), dp(15));
-                lyrxOwnerBadgeView.setCompoundDrawables(lyrxTick, null, null, null);
-                lyrxOwnerBadgeView.setCompoundDrawablePadding(dp(4));
-            }
-            avatarContainer2.addView(lyrxOwnerBadgeView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 22, Gravity.TOP | Gravity.LEFT));
-        }
         avatarImage.setAvatarsViewPager(avatarsViewPager);
 
         avatarsViewPagerIndicatorView = new PagerIndicatorView(context);
@@ -6031,17 +6012,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         return dp(152f);
     }
 
-    private boolean lyrxOwnerBadge() {
-        return userId == LYRX_OWNER_ID && !(imageUpdater != null && !myProfile);
-    }
-
     private int getActionsExtraHeight() {
         return getActionsExtraHeight(true);
     }
     private int getActionsExtraHeight(boolean withMusic) {
         if (userId != 0 && imageUpdater != null && !myProfile)
             return 0;
-        return dp(74 + (withMusic && (hasMusic || lyrxOwnerBadge()) ? 25 : 0));
+        return dp(74);
     }
 
     private int getHeaderExtraHeight() {
@@ -11261,19 +11238,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             actionsView.updatePosition(listView.getMeasuredWidth(), dp(74));
         } else {
             actionsView.clipHeight = -1;
-            float bottom = extraHeight + newTop - dp(hasMusic || lyrxOwnerBadge() ? 25 : 0);
+            float bottom = extraHeight + newTop;
             float height = Math.min(dp(74), bottom - newTop);
             actionsView.updatePosition(bottom - height, height);
-        }
-
-        if (lyrxOwnerBadgeView != null) {
-            final float badgeBottom = extraHeight + newTop - dp(hasMusic || lyrxOwnerBadge() ? 25 : 0);
-            lyrxOwnerBadgeView.setTranslationY(badgeBottom + dp(1));
-            lyrxOwnerBadgeView.setAlpha(actionsView.getAlpha());
-            final boolean badgeVisible = actionsView.getAlpha() > 0.01f && badgeBottom > newTop;
-            if (lyrxOwnerBadgeView.getVisibility() != (badgeVisible ? View.VISIBLE : View.INVISIBLE)) {
-                lyrxOwnerBadgeView.setVisibility(badgeVisible ? View.VISIBLE : View.INVISIBLE);
-            }
         }
 
         if (callToActionItem != null && callToActionItem.getTag() != null) {
