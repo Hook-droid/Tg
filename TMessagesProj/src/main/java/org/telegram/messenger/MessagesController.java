@@ -6708,6 +6708,9 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isChatNoForwards(TLRPC.Chat chat) {
+        if (SharedConfig.lyrxSaveRestricted) {
+            return false;
+        }
         if (chat == null) {
             return false;
         }
@@ -6733,6 +6736,9 @@ public class MessagesController extends BaseController implements NotificationCe
     }
 
     public boolean isUserNoForwards(TLRPC.UserFull userFull) {
+        if (SharedConfig.lyrxSaveRestricted) {
+            return false;
+        }
         if (userFull == null) {
             return false;
         }
