@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.view.MotionEvent;
@@ -104,15 +105,15 @@ public class LyrxMusicCard extends View {
 
         hasCoverImage = false;
         if (!TextUtils.isEmpty(artworkUrl)) {
-            coverImage.setImage(ImageLocation.getForPath(artworkUrl), "80_80", thumbLocation, "80_80", null, document, 1);
+            coverImage.setImage(ImageLocation.getForPath(artworkUrl), "80_80", thumbLocation, "80_80", (Drawable) null, document, 1);
         } else if (thumbLocation != null) {
-            coverImage.setImage(null, null, thumbLocation, "80_80", null, document, 1);
+            coverImage.setImage((ImageLocation) null, null, thumbLocation, "80_80", (Drawable) null, document, 1);
         } else {
             String smallArtworkUrl = MessageObject.getArtworkUrl(document, true);
             if (!TextUtils.isEmpty(smallArtworkUrl)) {
-                coverImage.setImage(ImageLocation.getForPath(smallArtworkUrl), "80_80", null, null, null, document, 1);
+                coverImage.setImage(ImageLocation.getForPath(smallArtworkUrl), "80_80", (ImageLocation) null, (String) null, (Drawable) null, document, 1);
             } else {
-                coverImage.setImageBitmap((android.graphics.drawable.Drawable) null);
+                coverImage.setImageBitmap((Drawable) null);
                 applyColors(0, false);
             }
         }
