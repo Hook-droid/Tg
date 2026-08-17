@@ -15666,6 +15666,17 @@ public class MessagesController extends BaseController implements NotificationCe
                 AndroidUtilities.runOnUIThread(() -> joiningToChannels.remove(chatId));
             }
             if (error != null) {
+                if (SharedConfig.lyrxBypassJoinLimit && isChannel && inputUser instanceof TLRPC.TL_inputUserSelf && error.text != null && error.text.contains("FLOOD_WAIT_")) {
+                    int lyrxWait = 0;
+                    try {
+                        lyrxWait = Integer.parseInt(error.text.substring(error.text.lastIndexOf("_") + 1).trim());
+                    } catch (Exception ignore) {}
+                    if (lyrxWait > 0 && lyrxWait <= 600) {
+                        final int lyrxDelay = lyrxWait;
+                        AndroidUtilities.runOnUIThread(() -> addUserToChat(chatId, user, forwardCount, botHash, fragment, ignoreIfAlreadyExists, onFinishRunnable, onError, processInvitedUsers), lyrxDelay * 1000L + 1000L);
+                        return;
+                    }
+                }
                 if ("JOIN_GUARD_TIMEOUT".equals(error.text)) {
                     AndroidUtilities.runOnUIThread(() -> {
                         if (processInvitedUsers != null) {
