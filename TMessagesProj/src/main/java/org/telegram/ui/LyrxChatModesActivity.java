@@ -231,6 +231,45 @@ public class LyrxChatModesActivity extends BaseFragment {
         LinearLayout.LayoutParams trgp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
         root.addView(trGroup, trgp);
 
+        TextView whHeader = new TextView(context);
+        whHeader.setText("Voice To Text (Beta)");
+        whHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        whHeader.setTextSize(15);
+        whHeader.setTypeface(AndroidUtilities.bold());
+        whHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(whHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout whGroup = new LinearLayout(context);
+        whGroup.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable whBg = new GradientDrawable();
+        whBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        whBg.setCornerRadius(AndroidUtilities.dp(16));
+        whGroup.setBackground(whBg);
+
+        TextCell whCell = new TextCell(context);
+        whCell.setTextAndValue("Engine Status", "Tap to check", false);
+        whCell.setOnClickListener(v -> {
+            String info = org.telegram.messenger.LyrxWhisper.systemInfo();
+            if (info == null) {
+                String err = org.telegram.messenger.LyrxWhisper.getLoadError();
+                whCell.setTextAndValue("Engine Status", err == null ? "Not loaded" : "Failed", false);
+            } else {
+                whCell.setTextAndValue("Engine Status", "OK", false);
+                if (getParentActivity() != null) {
+                    org.telegram.ui.ActionBar.AlertDialog.Builder b = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
+                    b.setTitle("Whisper Engine");
+                    b.setMessage(info);
+                    b.setPositiveButton("OK", null);
+                    b.show();
+                }
+            }
+        });
+        whGroup.addView(whCell);
+
+        LinearLayout.LayoutParams whp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        whp.bottomMargin = AndroidUtilities.dp(16);
+        root.addView(whGroup, whp);
+
         scroll.addView(root, new android.widget.FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         fragmentView = scroll;
         return fragmentView;

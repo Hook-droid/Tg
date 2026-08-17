@@ -27,7 +27,12 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
     private org.telegram.ui.Components.Switch proxySwitch;
     private boolean proxyConnecting;
     private java.util.ArrayList<String[]> proxyCandidates;
-    private int proxyTryIndex;
+    private Runnable listRefreshRunnable;
+    private int raceToken;
+    private int badPings;
+    private static final int PROXY_BATCH = 12;
+    private static final int PROXY_MAX_PING = 3000;
+    private static final long PROXY_REFRESH_MS = 600000L;
     private SharedConfig.ProxyInfo activeProxyInfo;
     private Runnable proxyPingRunnable;
     private String liveProxyServer;
@@ -55,7 +60,7 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         root.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
 
         TextView proxyHeader = new TextView(context);
-        proxyHeader.setText("Free Unlimited Proxy");
+        proxyHeader.setText("Free Smart Proxy");
         proxyHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
         proxyHeader.setTextSize(15);
         proxyHeader.setTypeface(AndroidUtilities.bold());
@@ -112,6 +117,33 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         LinearLayout.LayoutParams mp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
         mp.topMargin = AndroidUtilities.dp(12);
         root.addView(muteGroup, mp);
+
+        TextView mediaHeader = new TextView(context);
+        mediaHeader.setText("Media Freedom");
+        mediaHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        mediaHeader.setTextSize(15);
+        mediaHeader.setTypeface(AndroidUtilities.bold());
+        mediaHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(mediaHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout mediaGroup = new LinearLayout(context);
+        mediaGroup.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable mediaBg = new GradientDrawable();
+        mediaBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        mediaBg.setCornerRadius(AndroidUtilities.dp(16));
+        mediaGroup.setBackground(mediaBg);
+
+        mediaGroup.addView(makeCheck(context, "Save Restricted Content", "Download and forward from protected chats", SharedConfig.lyrxSaveRestricted, checked -> {
+            SharedConfig.lyrxSaveRestricted = checked;
+            save("lyrxSaveRestricted", checked);
+        }));
+        mediaGroup.addView(divider(context));
+        mediaGroup.addView(makeCheck(context, "Disable One-Time Media", "Show self-destructing photos, voices and rounds as normal", SharedConfig.lyrxRevealOnce, checked -> {
+            SharedConfig.lyrxRevealOnce = checked;
+            save("lyrxRevealOnce", checked);
+        }));
+
+        root.addView(mediaGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         scroll.addView(root, new android.widget.FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         fragmentView = scroll;
@@ -174,7 +206,7 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         LinearLayout textCol = new LinearLayout(context);
         textCol.setOrientation(LinearLayout.VERTICAL);
         TextView d = new TextView(context);
-        d.setText("Wait 5-10 Seconds To Connect");
+        d.setText("Auto-picks the fastest server");
         d.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
         d.setTextSize(13);
         proxyStatusView = new TextView(context);
@@ -219,6 +251,10 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         proxyConnecting = true;
         proxyStatusView.setTextColor(0xFFFFB020);
         startProxyDots();
+        fetchProxyList(true);
+    }
+
+    private void fetchProxyList(boolean connectAfter) {
         new Thread(() -> {
             java.util.ArrayList<String[]> list = new java.util.ArrayList<>();
             String[] urls = new String[]{
@@ -258,63 +294,121 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
                     br.close();
                 } catch (Exception ignore) {}
             }
+            java.util.Collections.shuffle(list);
             AndroidUtilities.runOnUIThread(() -> {
                 if (list.isEmpty()) {
-                    proxyFailed();
-                } else {
-                    proxyCandidates = list;
-                    proxyTryIndex = 0;
-                    tryNextProxy();
+                    if (connectAfter) proxyFailed();
+                    return;
+                }
+                proxyCandidates = list;
+                if (connectAfter) {
+                    raceProxies();
                 }
             });
         }).start();
     }
 
-    private void tryNextProxy() {
-        if (!proxyConnecting) return;
-        if (proxyCandidates == null || proxyTryIndex >= proxyCandidates.size() || proxyTryIndex >= 15) {
+    private void raceProxies() {
+        if (!proxyConnecting && liveProxyServer == null) return;
+        if (proxyCandidates == null || proxyCandidates.isEmpty()) {
             proxyFailed();
             return;
         }
-        String[] c = proxyCandidates.get(proxyTryIndex);
-        proxyTryIndex++;
+        final int batch = Math.min(PROXY_BATCH, proxyCandidates.size());
+        final java.util.ArrayList<Object[]> results = new java.util.ArrayList<>();
+        final int[] answered = new int[]{0};
+        final boolean[] decided = new boolean[]{false};
+        raceToken++;
+        final int myToken = raceToken;
+
+        Runnable decide = () -> {
+            if (decided[0] || myToken != raceToken) return;
+            decided[0] = true;
+            Object[] best = null;
+            for (Object[] r : results) {
+                if (best == null || (Integer) r[1] < (Integer) best[1]) best = r;
+            }
+            if (best == null) {
+                proxyCandidates.subList(0, batch).clear();
+                if (proxyCandidates.isEmpty()) {
+                    proxyFailed();
+                } else {
+                    raceProxies();
+                }
+            } else {
+                applyProxy((String[]) best[0], (Integer) best[1]);
+            }
+        };
+
+        for (int i = 0; i < batch; i++) {
+            final String[] c = proxyCandidates.get(i);
+            ConnectionsManager.getInstance(currentAccount).checkProxy(c[0], Integer.parseInt(c[1]), "", "", c[2], time -> AndroidUtilities.runOnUIThread(() -> {
+                if (myToken != raceToken) return;
+                if (time >= 0) {
+                    results.add(new Object[]{c, time});
+                }
+                answered[0]++;
+                if (answered[0] >= batch || (!results.isEmpty() && answered[0] >= Math.max(3, batch / 3))) {
+                    decide.run();
+                }
+            }));
+        }
+        AndroidUtilities.runOnUIThread(decide, 6000);
+    }
+
+    private void applyProxy(String[] c, int ping) {
         final String server = c[0];
         final int port = Integer.parseInt(c[1]);
         final String secret = c[2];
-        ConnectionsManager.getInstance(currentAccount).checkProxy(server, port, "", "", secret, time -> AndroidUtilities.runOnUIThread(() -> {
-            if (!proxyConnecting) return;
-            if (time < 0) {
-                tryNextProxy();
-            } else {
-                activeProxyInfo = new SharedConfig.ProxyInfo(server, port, "", "", secret);
-                SharedConfig.addProxy(activeProxyInfo);
-                SharedConfig.currentProxy = activeProxyInfo;
-                SharedPreferences pref = MessagesController.getGlobalMainSettings();
-                pref.edit().putBoolean("proxy_enabled", true).commit();
-                ConnectionsManager.setProxySettings(true, server, port, "", "", secret);
-                stopProxyDots();
-                proxyConnecting = false;
-                proxyStatusView.setTextColor(0xFF4CD964);
-                proxyStatusView.setText("Active (" + time + " ms)");
-                liveProxyServer = server;
-                liveProxyPort = port;
-                liveProxySecret = secret;
-                startLivePing();
-            }
-        }));
+        activeProxyInfo = new SharedConfig.ProxyInfo(server, port, "", "", secret);
+        SharedConfig.addProxy(activeProxyInfo);
+        SharedConfig.currentProxy = activeProxyInfo;
+        SharedPreferences pref = MessagesController.getGlobalMainSettings();
+        pref.edit().putBoolean("proxy_enabled", true).commit();
+        ConnectionsManager.setProxySettings(true, server, port, "", "", secret);
+        stopProxyDots();
+        proxyConnecting = false;
+        liveProxyServer = server;
+        liveProxyPort = port;
+        liveProxySecret = secret;
+        badPings = 0;
+        proxyStatusView.setTextColor(0xFF4CD964);
+        proxyStatusView.setText("Active (" + ping + " ms)");
+        if (proxyCandidates != null) {
+            proxyCandidates.remove(c);
+        }
+        startLivePing();
+        scheduleListRefresh();
+    }
+
+    private void switchToBetterProxy() {
+        stopLivePing();
+        liveProxyServer = null;
+        proxyConnecting = true;
+        proxyStatusView.setTextColor(0xFFFFB020);
+        proxyStatusView.setText("Switching...");
+        if (proxyCandidates == null || proxyCandidates.isEmpty()) {
+            fetchProxyList(true);
+        } else {
+            raceProxies();
+        }
     }
 
     private void proxyFailed() {
         stopProxyDots();
+        stopLivePing();
         proxyConnecting = false;
+        liveProxyServer = null;
         proxyStatusView.setTextColor(0xFFFF3B30);
         proxyStatusView.setText("Failed, try again");
         if (proxySwitch != null) proxySwitch.setChecked(false, true);
     }
 
     private void stopProxyConnection() {
+        raceToken++;
         stopProxyDots();
         stopLivePing();
+        stopListRefresh();
         activeProxyInfo = null;
         liveProxyServer = null;
         proxyConnecting = false;
@@ -332,7 +426,7 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
             public void run() {
                 if (!proxyConnecting) return;
                 proxyDotCount = (proxyDotCount % 3) + 1;
-                StringBuilder dots = new StringBuilder("Connecting");
+                StringBuilder dots = new StringBuilder("Finding fastest");
                 for (int i = 0; i < proxyDotCount; i++) dots.append(".");
                 proxyStatusView.setText(dots.toString());
                 AndroidUtilities.runOnUIThread(proxyDotRunnable, 400);
@@ -354,19 +448,29 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
             @Override
             public void run() {
                 if (liveProxyServer == null) return;
+                final String checking = liveProxyServer;
                 ConnectionsManager.getInstance(currentAccount).checkProxy(liveProxyServer, liveProxyPort, "", "", liveProxySecret, time -> AndroidUtilities.runOnUIThread(() -> {
-                    if (liveProxyServer == null) return;
-                    if (time >= 0) {
+                    if (liveProxyServer == null || !checking.equals(liveProxyServer)) return;
+                    if (time < 0 || time > PROXY_MAX_PING) {
+                        badPings++;
+                        proxyStatusView.setTextColor(0xFFFFB020);
+                        proxyStatusView.setText(time < 0 ? "Unstable" : "Slow (" + time + " ms)");
+                        if (badPings >= 2) {
+                            switchToBetterProxy();
+                            return;
+                        }
+                    } else {
+                        badPings = 0;
                         proxyStatusView.setTextColor(0xFF4CD964);
                         proxyStatusView.setText("Active (" + time + " ms)");
                     }
                     if (proxyPingRunnable != null) {
-                        AndroidUtilities.runOnUIThread(proxyPingRunnable, 1000);
+                        AndroidUtilities.runOnUIThread(proxyPingRunnable, 3000);
                     }
                 }));
             }
         };
-        AndroidUtilities.runOnUIThread(proxyPingRunnable, 1000);
+        AndroidUtilities.runOnUIThread(proxyPingRunnable, 3000);
     }
 
     private void stopLivePing() {
@@ -376,11 +480,32 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         }
     }
 
+    private void scheduleListRefresh() {
+        stopListRefresh();
+        listRefreshRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (liveProxyServer == null) return;
+                fetchProxyList(false);
+                AndroidUtilities.runOnUIThread(listRefreshRunnable, PROXY_REFRESH_MS);
+            }
+        };
+        AndroidUtilities.runOnUIThread(listRefreshRunnable, PROXY_REFRESH_MS);
+    }
+
+    private void stopListRefresh() {
+        if (listRefreshRunnable != null) {
+            AndroidUtilities.cancelRunOnUIThread(listRefreshRunnable);
+            listRefreshRunnable = null;
+        }
+    }
+
     @Override
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
         stopLivePing();
         stopProxyDots();
+        stopListRefresh();
     }
 
     private void save(String key, boolean value) {
