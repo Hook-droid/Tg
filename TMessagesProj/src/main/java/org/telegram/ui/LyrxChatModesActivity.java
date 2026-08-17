@@ -74,7 +74,7 @@ public class LyrxChatModesActivity extends BaseFragment {
         }
 
         TextCheckCell limitCell = new TextCheckCell(context);
-        limitCell.setTextAndValueAndCheck("Limit Sinirini Kaldirin", "Auto-retry channel joins when Telegram rate limits you", SharedConfig.lyrxBypassJoinLimit, true, false);
+        limitCell.setTextAndValueAndCheck("Remove Join Limit", "Auto-retry channel joins when Telegram rate limits you", SharedConfig.lyrxBypassJoinLimit, true, false);
         limitCell.setOnClickListener(v -> {
             boolean ns = !limitCell.isChecked();
             limitCell.setChecked(ns);
@@ -246,25 +246,50 @@ public class LyrxChatModesActivity extends BaseFragment {
         whBg.setCornerRadius(AndroidUtilities.dp(16));
         whGroup.setBackground(whBg);
 
-        TextCell whCell = new TextCell(context);
-        whCell.setTextAndValue("Engine Status", "Tap to check", false);
-        whCell.setOnClickListener(v -> {
-            String info = org.telegram.messenger.LyrxWhisper.systemInfo();
-            if (info == null) {
-                String err = org.telegram.messenger.LyrxWhisper.getLoadError();
-                whCell.setTextAndValue("Engine Status", err == null ? "Not loaded" : "Failed", false);
-            } else {
-                whCell.setTextAndValue("Engine Status", "OK", false);
+        TextCheckCell whToggle = new TextCheckCell(context);
+        whToggle.setTextAndValueAndCheck("Voice To Text", "Show the transcribe button on voice messages", SharedConfig.lyrxWhisperEnabled, true, false);
+        whToggle.setOnClickListener(v -> {
+            boolean ns = !whToggle.isChecked();
+            if (ns && !org.telegram.messenger.LyrxWhisper.isModelReady()) {
                 if (getParentActivity() != null) {
                     org.telegram.ui.ActionBar.AlertDialog.Builder b = new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity());
-                    b.setTitle("Whisper Engine");
-                    b.setMessage(info);
+                    b.setTitle("Model Required");
+                    b.setMessage("Download the 31 MB speech model first, then turn this on.");
                     b.setPositiveButton("OK", null);
                     b.show();
                 }
+                return;
             }
+            whToggle.setChecked(ns);
+            SharedConfig.lyrxWhisperEnabled = ns;
+            MessagesController.getGlobalMainSettings().edit().putBoolean("lyrxWhisperEnabled", ns).apply();
         });
-        whGroup.addView(whCell);
+        whGroup.addView(whToggle);
+
+        TextCell modelCell = new TextCell(context);
+        modelCell.setTextAndValue("Speech Model", org.telegram.messenger.LyrxWhisper.isModelReady() ? "Ready" : "Download (31 MB)", false);
+        modelCell.setOnClickListener(v -> {
+            if (org.telegram.messenger.LyrxWhisper.isDownloading()) {
+                return;
+            }
+            if (org.telegram.messenger.LyrxWhisper.isModelReady()) {
+                modelCell.setTextAndValue("Speech Model", "Ready", false);
+                return;
+            }
+            modelCell.setTextAndValue("Speech Model", "0%", false);
+            org.telegram.messenger.LyrxWhisper.downloadModel(new org.telegram.messenger.LyrxWhisper.DownloadCallback() {
+                @Override
+                public void onProgress(int percent) {
+                    modelCell.setTextAndValue("Speech Model", percent + "%", false);
+                }
+
+                @Override
+                public void onDone(boolean success) {
+                    modelCell.setTextAndValue("Speech Model", success ? "Ready" : "Failed, tap to retry", false);
+                }
+            });
+        });
+        whGroup.addView(modelCell);
 
         LinearLayout.LayoutParams whp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
         whp.bottomMargin = AndroidUtilities.dp(16);
