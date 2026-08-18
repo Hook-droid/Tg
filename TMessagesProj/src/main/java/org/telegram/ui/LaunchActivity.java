@@ -4987,7 +4987,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             } else if (state == 1) {
                 TLRPC.TL_messages_importChatInvite req = new TLRPC.TL_messages_importChatInvite();
                 req.hash = group;
-                ConnectionsManager.getInstance(intentAccount).sendRequestTyped(req, null, (response, error) -> {
+                org.telegram.messenger.LyrxJoinLimit.enqueue(() -> ConnectionsManager.getInstance(intentAccount).sendRequestTyped(req, null, (response, error) -> {
                     final TLRPC.Updates updates;
                     if (response instanceof TLRPC.TL_chatInviteJoinResultOk) {
                         updates = ((TLRPC.TL_chatInviteJoinResultOk) response).updates;
@@ -5012,6 +5012,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                 FileLog.e(e);
                             }
                             if (error == null) {
+                                org.telegram.messenger.LyrxJoinLimit.reportSuccess();
                                 if (actionBarLayout != null) {
                                     if (updates != null && !updates.chats.isEmpty()) {
                                         TLRPC.Chat chat = updates.chats.get(0);
@@ -5029,6 +5030,9 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                                     }
                                 }
                             } else {
+                                if (org.telegram.messenger.LyrxJoinLimit.retryImportInvite(intentAccount, group, error)) {
+                                    return;
+                                }
                                 AlertDialog.Builder builder = new AlertDialog.Builder(LaunchActivity.this);
                                 builder.setTitle(LocaleController.getString(R.string.AppName));
                                 if (error.text.startsWith("FLOOD_WAIT")) {
@@ -5043,7 +5047,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
                             }
                         }
                     });
-                }, ConnectionsManager.RequestFlagFailOnServerErrors);
+                }, ConnectionsManager.RequestFlagFailOnServerErrors));
             }
         } else if (sticker != null) {
             if (!mainFragmentsStack.isEmpty()) {
