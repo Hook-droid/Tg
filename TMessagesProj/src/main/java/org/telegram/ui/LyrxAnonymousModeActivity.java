@@ -154,6 +154,31 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
             save("lyrxGhostStories", ns);
         });
         storyGroup.addView(storyCell);
+        storyGroup.addView(divider(context));
+
+        TextCheckCell storyDownloadCell = new TextCheckCell(context);
+        storyDownloadCell.setTextAndValueAndCheck("Story Downloader", "Save Stories Even When The Owner Blocked Saving", SharedConfig.lyrxStoryDownload, true, false);
+        storyDownloadCell.setPlainIcon(R.drawable.msg_download);
+        storyDownloadCell.setOnClickListener(v -> {
+            boolean ns = !storyDownloadCell.isChecked();
+            storyDownloadCell.setChecked(ns);
+            SharedConfig.lyrxStoryDownload = ns;
+            save("lyrxStoryDownload", ns);
+        });
+        storyGroup.addView(storyDownloadCell);
+        storyGroup.addView(divider(context));
+
+        TextCheckCell storyShotCell = new TextCheckCell(context);
+        storyShotCell.setTextAndValueAndCheck("Allow Story Screenshots", "Take Screenshots And Recordings Of Protected Stories", SharedConfig.lyrxStoryScreenshot, true, false);
+        storyShotCell.setPlainIcon(R.drawable.msg_camera);
+        storyShotCell.setOnClickListener(v -> {
+            boolean ns = !storyShotCell.isChecked();
+            storyShotCell.setChecked(ns);
+            SharedConfig.lyrxStoryScreenshot = ns;
+            save("lyrxStoryScreenshot", ns);
+        });
+        storyGroup.addView(storyShotCell);
+
         root.addView(storyGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextView mediaHeader = new TextView(context);
