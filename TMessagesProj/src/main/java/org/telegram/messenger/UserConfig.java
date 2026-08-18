@@ -576,6 +576,10 @@ public class UserConfig extends BaseController {
         if (user == null) {
             return false;
         }
+        if (SharedConfig.lyrxFreePremium) {
+            user.premium = true;
+            return true;
+        }
         return user.premium;
     }
 

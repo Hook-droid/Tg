@@ -316,6 +316,7 @@ public class SharedConfig {
     public static boolean lyrxSaveRestricted = false;
     public static boolean lyrxRevealOnce = false;
     public static boolean lyrxGhostStories = false;
+    public static boolean lyrxFreePremium = false;
     public static java.util.HashSet<Long> lyrxMuteList = new java.util.HashSet<>();
     public static boolean hasCameraCache;
     public static boolean showNotificationsForAllAccounts = true;
@@ -561,6 +562,7 @@ public class SharedConfig {
             lyrxSaveRestricted = lyrxPrefs.getBoolean("lyrxSaveRestricted", false);
             lyrxRevealOnce = lyrxPrefs.getBoolean("lyrxRevealOnce", false);
             lyrxGhostStories = lyrxPrefs.getBoolean("lyrxGhostStories", false);
+            lyrxFreePremium = lyrxPrefs.getBoolean("lyrxFreePremium", false);
             lyrxMuteList.clear();
             String muteStr = lyrxPrefs.getString("lyrxMuteList", "");
             if (muteStr != null && muteStr.length() > 0) {
