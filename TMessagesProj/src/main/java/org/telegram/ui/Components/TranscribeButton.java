@@ -782,6 +782,24 @@ public class TranscribeButton {
         }
     }
 
+    private static java.io.File lyrxResolveVoiceFile(MessageObject messageObject, int account) {
+        try {
+            if (messageObject.messageOwner.attachPath != null) {
+                java.io.File attach = new java.io.File(messageObject.messageOwner.attachPath);
+                if (attach.exists() && attach.length() > 0) {
+                    return attach;
+                }
+            }
+            java.io.File file = FileLoader.getInstance(account).getPathToMessage(messageObject.messageOwner);
+            if (file != null && file.exists() && file.length() > 0) {
+                return file;
+            }
+        } catch (Throwable e) {
+            FileLog.e(e);
+        }
+        return null;
+    }
+
     private static void lyrxTranscribeLocally(MessageObject messageObject, int account, long dialogId, int messageId) {
         if (transcribeOperationsByDialogPosition == null) {
             transcribeOperationsByDialogPosition = new HashMap<>();
@@ -798,13 +816,22 @@ public class TranscribeButton {
         new Thread(() -> {
             String result = null;
             try {
-                java.io.File file = FileLoader.getInstance(account).getPathToMessage(messageObject.messageOwner);
-                if (file == null || !file.exists()) {
-                    java.io.File attach = messageObject.messageOwner.attachPath == null ? null : new java.io.File(messageObject.messageOwner.attachPath);
-                    if (attach != null && attach.exists()) {
-                        file = attach;
-                    } else {
-                        file = null;
+                java.io.File file = lyrxResolveVoiceFile(messageObject, account);
+                if (file == null) {
+                    final TLRPC.Document doc = messageObject.getDocument();
+                    if (doc != null) {
+                        AndroidUtilities.runOnUIThread(() -> FileLoader.getInstance(account).loadFile(doc, messageObject, FileLoader.PRIORITY_HIGH, 0));
+                        for (int i = 0; i < 120; i++) {
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException ignore) {
+                                break;
+                            }
+                            file = lyrxResolveVoiceFile(messageObject, account);
+                            if (file != null) {
+                                break;
+                            }
+                        }
                     }
                 }
                 if (file != null) {
