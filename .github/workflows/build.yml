@@ -125,10 +125,14 @@ jobs:
                                      r'\g<1>LyrxGram\g<2>', s)
                           s = re.sub(r'(<string name="AppName">)[^<]*(</string>)',
                                      r'\g<1>LyrxGram\g<2>', s)
+                          s = re.sub(r'(<string name="AppNameBeta">)[^<]*(</string>)',
+                                     r'\g<1>LyrxGram\g<2>', s)
+                          s = re.sub(r'(<string name="AppUpdateBeta">)[^<]*(</string>)',
+                                     r'\g<1>Update LyrxGram\g<2>', s)
                           open(fp, 'w', encoding='utf-8').write(s)
                       except Exception as e:
                           print('atlandi', fp, e)
-          print('Tum dillerde Page1Title ve AppName LyrxGram yapildi')
+          print('Tum dillerde Page1Title, AppName ve AppNameBeta LyrxGram yapildi')
           PYEOF
 
       - name: Swap alani buyut
