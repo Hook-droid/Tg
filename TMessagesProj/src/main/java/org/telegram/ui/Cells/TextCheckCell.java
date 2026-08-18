@@ -437,6 +437,25 @@ public class TextCheckCell extends FrameLayout {
         attached = false;
     }
 
+    public void setPlainIcon(int resId) {
+        if (imageView == null) {
+            imageView = new RLottieImageView(getContext());
+            imageView.setScaleType(ImageView.ScaleType.CENTER);
+            addView(imageView, LayoutHelper.createFrame(29, 29, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 19, 0, 19, 0));
+        }
+        padding = AndroidUtilities.dp(65);
+        ((MarginLayoutParams) textView.getLayoutParams()).leftMargin = LocaleController.isRTL ? 70 : padding;
+        ((MarginLayoutParams) textView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : 70;
+        ((MarginLayoutParams) valueTextView.getLayoutParams()).leftMargin = LocaleController.isRTL ? 70 : padding;
+        ((MarginLayoutParams) valueTextView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : 70;
+        imageView.setVisibility(VISIBLE);
+        imageView.setPadding(0, 0, 0, 0);
+        imageView.setBackground(null);
+        imageView.setImageResource(resId);
+        imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon, resourcesProvider), PorterDuff.Mode.SRC_IN));
+        requestLayout();
+    }
+
     public void setColorfullIcon(int color, int resId) {
         if (imageView == null) {
             imageView = new RLottieImageView(getContext());
