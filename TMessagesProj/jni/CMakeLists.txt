@@ -671,28 +671,3 @@ target_link_libraries(${NATIVE_LIB}
 
 include(AndroidNdkModules)
 android_ndk_import_module_cpufeatures()
-
-#lyrx whisper
-add_library(whisper_lyrx SHARED
-        whisper/ggml.c
-        whisper/ggml-alloc.c
-        whisper/ggml-backend.c
-        whisper/ggml-quants.c
-        whisper/whisper.cpp
-        lyrx_whisper.cpp)
-
-target_include_directories(whisper_lyrx PRIVATE ${CMAKE_HOME_DIRECTORY}/whisper)
-
-target_compile_options(whisper_lyrx PRIVATE
-        -O3
-        -fno-lto
-        -fvisibility=default
-        -DNDEBUG
-        -D_GNU_SOURCE
-        -pthread)
-
-set_target_properties(whisper_lyrx PROPERTIES
-        INTERPROCEDURAL_OPTIMIZATION FALSE
-        LINK_FLAGS "-fno-lto")
-
-target_link_libraries(whisper_lyrx log android)
