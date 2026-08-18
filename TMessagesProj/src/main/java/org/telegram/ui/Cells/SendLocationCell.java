@@ -170,7 +170,11 @@ public class SendLocationCell extends FrameLayout {
                 setText(LocaleController.getString(R.string.SharingLiveLocation), LocaleController.getString(R.string.SharingLiveLocationAdd));
             }
         } else {
-            setText(LocaleController.getString(R.string.SendLiveLocation), LocaleController.getString(R.string.SendLiveLocationInfo));
+            if (org.telegram.ui.LocationActivity.lyrxFakeMode) {
+                setText("Set A Fake Live Location", "Tap To Save The Selected Point");
+            } else {
+                setText(LocaleController.getString(R.string.SendLiveLocation), LocaleController.getString(R.string.SendLiveLocationInfo));
+            }
         }
     }
 
