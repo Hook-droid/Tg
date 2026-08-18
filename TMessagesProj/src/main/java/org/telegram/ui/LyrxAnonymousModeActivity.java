@@ -28,6 +28,9 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
     private boolean proxyConnecting;
     private java.util.ArrayList<String[]> proxyCandidates;
     private int proxyTryIndex;
+    private org.telegram.ui.Components.BackupImageView mapPreview;
+    private TextView mapHint;
+    private TextCheckCell fakeLocCell;
     private SharedConfig.ProxyInfo activeProxyInfo;
     private Runnable proxyPingRunnable;
     private String liveProxyServer;
@@ -65,6 +68,60 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         LinearLayout.LayoutParams proxyParams = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
         proxyParams.bottomMargin = AndroidUtilities.dp(16);
         root.addView(createProxyCard(context), proxyParams);
+
+        TextView fakeLocHeader = new TextView(context);
+        fakeLocHeader.setText("Fake Live Location");
+        fakeLocHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        fakeLocHeader.setTextSize(15);
+        fakeLocHeader.setTypeface(AndroidUtilities.bold());
+        fakeLocHeader.setPadding(AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(fakeLocHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout fakeLocGroup = new LinearLayout(context);
+        fakeLocGroup.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable fakeLocBg = new GradientDrawable();
+        fakeLocBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        fakeLocBg.setCornerRadius(AndroidUtilities.dp(16));
+        fakeLocGroup.setBackground(fakeLocBg);
+        fakeLocGroup.setClipToOutline(true);
+        fakeLocGroup.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), AndroidUtilities.dp(16));
+            }
+        });
+
+        mapPreview = new org.telegram.ui.Components.BackupImageView(context);
+        mapPreview.setOnClickListener(v -> openFakeLocationPicker());
+        fakeLocGroup.addView(mapPreview, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 160));
+
+        mapHint = new TextView(context);
+        mapHint.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        mapHint.setTextSize(13);
+        mapHint.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(10), AndroidUtilities.dp(20), AndroidUtilities.dp(4));
+        mapHint.setOnClickListener(v -> openFakeLocationPicker());
+        fakeLocGroup.addView(mapHint, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        fakeLocCell = new TextCheckCell(context);
+        fakeLocCell.setTextAndValueAndCheck("Fake Live Location", "Share The Point You Picked Instead Of Your Real Position", SharedConfig.lyrxFakeLocation, true, false);
+        fakeLocCell.setPlainIcon(R.drawable.msg_map);
+        fakeLocCell.setOnClickListener(v -> {
+            boolean ns = !fakeLocCell.isChecked();
+            if (ns && SharedConfig.lyrxFakeLat == 0f && SharedConfig.lyrxFakeLon == 0f) {
+                openFakeLocationPicker();
+                return;
+            }
+            fakeLocCell.setChecked(ns);
+            SharedConfig.lyrxFakeLocation = ns;
+            save("lyrxFakeLocation", ns);
+        });
+        fakeLocGroup.addView(fakeLocCell);
+
+        LinearLayout.LayoutParams flp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        flp.bottomMargin = AndroidUtilities.dp(16);
+        root.addView(fakeLocGroup, flp);
+
+        updateMapPreview();
 
         TextView ghostHeader = new TextView(context);
         ghostHeader.setText("Ghost Mode");
@@ -469,6 +526,55 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         if (proxyPingRunnable != null) {
             AndroidUtilities.cancelRunOnUIThread(proxyPingRunnable);
             proxyPingRunnable = null;
+        }
+    }
+
+    private void openFakeLocationPicker() {
+        org.telegram.ui.LocationActivity fragment = new org.telegram.ui.LocationActivity(org.telegram.ui.LocationActivity.LOCATION_TYPE_SEND_WITH_LIVE);
+        org.telegram.ui.LocationActivity.lyrxFakeMode = true;
+        fragment.setDelegate((location, live, notify, scheduleDate, payStars) -> {
+            if (location != null && location.geo != null) {
+                SharedConfig.lyrxFakeLat = (float) location.geo.lat;
+                SharedConfig.lyrxFakeLon = (float) location.geo._long;
+                MessagesController.getGlobalMainSettings().edit()
+                        .putFloat("lyrxFakeLat", SharedConfig.lyrxFakeLat)
+                        .putFloat("lyrxFakeLon", SharedConfig.lyrxFakeLon)
+                        .apply();
+                try {
+                    org.telegram.ui.Components.BulletinFactory.global()
+                            .createSimpleBulletin(R.raw.chats_infotip, "Fake Location Successfully Set").show();
+                } catch (Exception ignore) {}
+            }
+        });
+        presentFragment(fragment);
+    }
+
+    private void updateMapPreview() {
+        if (mapPreview == null) {
+            return;
+        }
+        if (SharedConfig.lyrxFakeLat == 0f && SharedConfig.lyrxFakeLon == 0f) {
+            mapPreview.setImageDrawable(null);
+            if (mapHint != null) {
+                mapHint.setText("Tap the map to pick a fake position");
+            }
+            return;
+        }
+        int width = Math.max(1, (int) ((AndroidUtilities.displaySize.x - AndroidUtilities.dp(24)) / AndroidUtilities.density));
+        String url = AndroidUtilities.formapMapUrl(currentAccount, SharedConfig.lyrxFakeLat, SharedConfig.lyrxFakeLon, width, 160, true, 15, -1);
+        mapPreview.setImage(url, null, null);
+        if (mapHint != null) {
+            mapHint.setText(String.format(java.util.Locale.US, "Selected: %.5f, %.5f", SharedConfig.lyrxFakeLat, SharedConfig.lyrxFakeLon));
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        org.telegram.ui.LocationActivity.lyrxFakeMode = false;
+        updateMapPreview();
+        if (fakeLocCell != null) {
+            fakeLocCell.setChecked(SharedConfig.lyrxFakeLocation);
         }
     }
 

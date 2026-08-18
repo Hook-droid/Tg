@@ -79,6 +79,8 @@ import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.utils.ViewOutlineProviderImpl;
 import org.telegram.tgnet.TLRPC;
@@ -233,6 +235,8 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
     private final static int map_list_menu_map = 2;
     private final static int map_list_menu_satellite = 3;
     private final static int map_list_menu_hybrid = 4;
+
+    public static boolean lyrxFakeMode = false;
 
     public final static int LOCATION_TYPE_SEND = 0;
     public final static int LOCATION_TYPE_SEND_WITH_LIVE = 1;
@@ -1785,6 +1789,21 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
     }
 
     private void openShareLiveLocation(boolean expand, int proximityRadius) {
+        if (lyrxFakeMode) {
+            if (userLocation != null) {
+                SharedConfig.lyrxFakeLat = (float) userLocation.getLatitude();
+                SharedConfig.lyrxFakeLon = (float) userLocation.getLongitude();
+                MessagesController.getGlobalMainSettings().edit()
+                        .putFloat("lyrxFakeLat", SharedConfig.lyrxFakeLat)
+                        .putFloat("lyrxFakeLon", SharedConfig.lyrxFakeLon)
+                        .apply();
+                try {
+                    BulletinFactory.global().createSimpleBulletin(R.raw.chats_infotip, "Fake Location Successfully Set").show();
+                } catch (Exception ignore) {}
+            }
+            finishFragment();
+            return;
+        }
         if (delegate == null || disablePermissionCheck() || getParentActivity() == null || myLocation == null || !checkGpsEnabled()) {
             return;
         }
