@@ -36,7 +36,6 @@ import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
-import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.MessagesStorage;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
@@ -118,7 +117,7 @@ public class TranscribeButton {
 
         this.isOpen = false;
         this.shouldBeOpen = false;
-        premium = org.telegram.messenger.LyrxWhisper.isAvailable() || parent.getMessageObject() != null && UserConfig.getInstance(parent.getMessageObject().currentAccount).isPremium();
+        premium = parent.getMessageObject() != null && UserConfig.getInstance(parent.getMessageObject().currentAccount).isPremium();
 
         loadingFloat = new AnimatedFloat(parent, 250, CubicBezierInterpolator.EASE_OUT_QUINT);
         animatedDrawLock = new AnimatedFloat(parent, 250, CubicBezierInterpolator.EASE_OUT_QUINT);
@@ -229,7 +228,7 @@ public class TranscribeButton {
         }
         pressed = false;
         if (processClick) {
-            if (!premium && toOpen && !org.telegram.messenger.LyrxWhisper.isAvailable()) {
+            if (!premium && toOpen) {
                 if (canTranscribeTrial(parent.getMessageObject()) || parent.getMessageObject() != null && parent.getMessageObject().messageOwner != null && !TextUtils.isEmpty(parent.getMessageObject().messageOwner.voiceTranscription)) {
                     transcribePressed(parent.getMessageObject(), toOpen, parent.getDelegate());
                 } else {
@@ -689,8 +688,6 @@ public class TranscribeButton {
                 AndroidUtilities.runOnUIThread(() -> {
                     NotificationCenter.getInstance(account).postNotificationName(NotificationCenter.voiceTranscriptionUpdate, messageObject, null, null, (Boolean) true, (Boolean) true);
                 });
-            } else if (org.telegram.messenger.LyrxWhisper.isAvailable() && messageObject.isVoice()) {
-                lyrxTranscribeLocally(messageObject, account, dialogId, messageId);
             } else {
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.d("sending Transcription request, msg_id=" + messageId + " dialog_id=" + dialogId);
@@ -780,77 +777,6 @@ public class TranscribeButton {
                 NotificationCenter.getInstance(account).postNotificationName(NotificationCenter.voiceTranscriptionUpdate, messageObject, null, null, (Boolean) false, null);
             });
         }
-    }
-
-    private static java.io.File lyrxResolveVoiceFile(MessageObject messageObject, int account) {
-        try {
-            if (messageObject.messageOwner.attachPath != null) {
-                java.io.File attach = new java.io.File(messageObject.messageOwner.attachPath);
-                if (attach.exists() && attach.length() > 0) {
-                    return attach;
-                }
-            }
-            java.io.File file = FileLoader.getInstance(account).getPathToMessage(messageObject.messageOwner);
-            if (file != null && file.exists() && file.length() > 0) {
-                return file;
-            }
-        } catch (Throwable e) {
-            FileLog.e(e);
-        }
-        return null;
-    }
-
-    private static void lyrxTranscribeLocally(MessageObject messageObject, int account, long dialogId, int messageId) {
-        if (transcribeOperationsByDialogPosition == null) {
-            transcribeOperationsByDialogPosition = new HashMap<>();
-        }
-        transcribeOperationsByDialogPosition.put((Integer) reqInfoHash(messageObject), messageObject);
-
-        TranscribeButton.openVideoTranscription(messageObject);
-        messageObject.messageOwner.voiceTranscriptionOpen = true;
-        messageObject.messageOwner.voiceTranscriptionFinal = false;
-        MessagesStorage.getInstance(account).updateMessageVoiceTranscriptionOpen(dialogId, messageId, messageObject.messageOwner);
-        AndroidUtilities.runOnUIThread(() -> NotificationCenter.getInstance(account).postNotificationName(NotificationCenter.voiceTranscriptionUpdate, messageObject, null, null, (Boolean) true, (Boolean) false));
-
-        final long start = SystemClock.elapsedRealtime();
-        new Thread(() -> {
-            String result = null;
-            try {
-                java.io.File file = lyrxResolveVoiceFile(messageObject, account);
-                if (file == null) {
-                    final TLRPC.Document doc = messageObject.getDocument();
-                    if (doc != null) {
-                        AndroidUtilities.runOnUIThread(() -> FileLoader.getInstance(account).loadFile(doc, messageObject, FileLoader.PRIORITY_HIGH, 0));
-                        for (int i = 0; i < 120; i++) {
-                            try {
-                                Thread.sleep(500);
-                            } catch (InterruptedException ignore) {
-                                break;
-                            }
-                            file = lyrxResolveVoiceFile(messageObject, account);
-                            if (file != null) {
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (file != null) {
-                    float[] pcm = org.telegram.messenger.LyrxAudioDecoder.decodeToWhisperPcm(file.getAbsolutePath());
-                    if (pcm != null && pcm.length > 0) {
-                        result = org.telegram.messenger.LyrxWhisper.transcribe(pcm, "auto");
-                    }
-                }
-            } catch (Throwable e) {
-                FileLog.e(e);
-            }
-            final String text = result == null ? "" : result;
-            final long duration = SystemClock.elapsedRealtime() - start;
-            AndroidUtilities.runOnUIThread(() -> {
-                messageObject.messageOwner.voiceTranscriptionFinal = true;
-                MessagesStorage.getInstance(account).updateMessageVoiceTranscription(dialogId, messageId, text, messageObject.messageOwner);
-                finishTranscription(messageObject, 0, text);
-            }, Math.max(0, 350 - duration));
-        }).start();
     }
 
     public static boolean finishTranscription(MessageObject messageObject, long transcription_id, String text) {
