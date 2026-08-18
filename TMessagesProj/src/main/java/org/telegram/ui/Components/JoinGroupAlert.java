@@ -229,7 +229,7 @@ public class JoinGroupAlert extends BottomSheet {
                 } else {
                     final TLRPC.TL_messages_importChatInvite request = new TLRPC.TL_messages_importChatInvite();
                     request.hash = hash;
-                    ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) -> {
+                    org.telegram.messenger.LyrxJoinLimit.enqueue(() -> ConnectionsManager.getInstance(currentAccount).sendRequest(request, (response, error) -> {
                         final TLRPC.Updates updates;
                         if (response instanceof TLRPC.TL_chatInviteJoinResultOk) {
                             updates = ((TLRPC.TL_chatInviteJoinResultOk) response).updates;
@@ -253,13 +253,13 @@ public class JoinGroupAlert extends BottomSheet {
                             if (error != null) {
                                 if ("INVITE_REQUEST_SENT".equals(error.text)) {
                                     setOnDismissListener(di -> showBulletin(getContext(), fragment, bulletinFactory, isChannel));
-                                } else {
+                                } else if (!org.telegram.messenger.LyrxJoinLimit.retryImportInvite(currentAccount, hash, error)) {
                                     AlertsCreator.processError(currentAccount, error, fragment, request);
                                 }
                             }
                             dismiss();
                         });
-                    }, ConnectionsManager.RequestFlagFailOnServerErrors);
+                    }, ConnectionsManager.RequestFlagFailOnServerErrors));
                 }
             });
             requestFrameLayout.addView(requestTextView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48, Gravity.START, 14, 0, 14, 0));
@@ -339,7 +339,7 @@ public class JoinGroupAlert extends BottomSheet {
                 dismiss();
                 final TLRPC.TL_messages_importChatInvite req = new TLRPC.TL_messages_importChatInvite();
                 req.hash = hash;
-                ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, null, (response, error) -> {
+                org.telegram.messenger.LyrxJoinLimit.enqueue(() -> ConnectionsManager.getInstance(currentAccount).sendRequestTyped(req, null, (response, error) -> {
                     final TLRPC.Updates updates;
                     if (response instanceof TLRPC.TL_chatInviteJoinResultOk) {
                         updates = ((TLRPC.TL_chatInviteJoinResultOk) response).updates;
@@ -360,6 +360,7 @@ public class JoinGroupAlert extends BottomSheet {
                             return;
                         }
                         if (error == null) {
+                            org.telegram.messenger.LyrxJoinLimit.reportSuccess();
                             if (updates != null && !updates.chats.isEmpty()) {
                                 final TLRPC.Chat chat = updates.chats.get(0);
                                 chat.left = false;
@@ -371,12 +372,12 @@ public class JoinGroupAlert extends BottomSheet {
                         } else {
                             if ("USER_ALREADY_PARTICIPANT".equals(error.text) && origination == ORIGINATION_SPONSORED_CHAT && chatInvite != null && chatInvite.chat != null) {
                                 openChat(chatInvite.chat.id, false);
-                            } else {
+                            } else if (!org.telegram.messenger.LyrxJoinLimit.retryImportInvite(currentAccount, hash, error)) {
                                 AlertsCreator.processError(currentAccount, error, fragment, req);
                             }
                         }
                     });
-                }, ConnectionsManager.RequestFlagFailOnServerErrors);
+                }, ConnectionsManager.RequestFlagFailOnServerErrors));
             });
         }
     }
