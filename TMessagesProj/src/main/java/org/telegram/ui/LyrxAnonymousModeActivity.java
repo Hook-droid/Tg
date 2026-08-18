@@ -129,6 +129,33 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
         mp.topMargin = 0;
         root.addView(muteGroup, mp);
 
+        TextView storyHeader = new TextView(context);
+        storyHeader.setText("Secretly Watch the Stories");
+        storyHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        storyHeader.setTextSize(15);
+        storyHeader.setTypeface(AndroidUtilities.bold());
+        storyHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(storyHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout storyGroup = new LinearLayout(context);
+        storyGroup.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable storyBg = new GradientDrawable();
+        storyBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        storyBg.setCornerRadius(AndroidUtilities.dp(16));
+        storyGroup.setBackground(storyBg);
+
+        TextCheckCell storyCell = new TextCheckCell(context);
+        storyCell.setTextAndValueAndCheck("Ghost Story View", "Watch Stories Without Sending \"Seen\" Notification", SharedConfig.lyrxGhostStories, true, false);
+        storyCell.setPlainIcon(R.drawable.msg_stories_myhide);
+        storyCell.setOnClickListener(v -> {
+            boolean ns = !storyCell.isChecked();
+            storyCell.setChecked(ns);
+            SharedConfig.lyrxGhostStories = ns;
+            save("lyrxGhostStories", ns);
+        });
+        storyGroup.addView(storyCell);
+        root.addView(storyGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
         TextView mediaHeader = new TextView(context);
         mediaHeader.setText("Media Freedom");
         mediaHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
