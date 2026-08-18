@@ -147,25 +147,6 @@ jobs:
           echo "org.gradle.parallel=false" >> gradle.properties
           echo "org.gradle.workers.max=1" >> gradle.properties
 
-      - name: whisper.cpp indir
-        run: |
-          rm -rf TMessagesProj/jni/whisper
-          git clone --depth 1 --branch v1.5.4 https://github.com/ggerganov/whisper.cpp.git /tmp/whispersrc
-          mkdir -p TMessagesProj/jni/whisper
-          cp /tmp/whispersrc/whisper.cpp        TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/whisper.h          TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml.c             TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml.h             TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-impl.h        TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-alloc.c       TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-alloc.h       TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-backend.c     TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-backend.h     TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-backend-impl.h TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-quants.c      TMessagesProj/jni/whisper/
-          cp /tmp/whispersrc/ggml-quants.h      TMessagesProj/jni/whisper/
-          ls -la TMessagesProj/jni/whisper/
-
       - name: gradlew calistirilabilir yap
         run: chmod +x gradlew
 
