@@ -444,10 +444,11 @@ public class TextCheckCell extends FrameLayout {
             addView(imageView, LayoutHelper.createFrame(29, 29, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.CENTER_VERTICAL, 19, 0, 19, 0));
         }
         padding = AndroidUtilities.dp(65);
-        ((MarginLayoutParams) textView.getLayoutParams()).leftMargin = LocaleController.isRTL ? 70 : padding;
-        ((MarginLayoutParams) textView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : 70;
-        ((MarginLayoutParams) valueTextView.getLayoutParams()).leftMargin = LocaleController.isRTL ? 70 : padding;
-        ((MarginLayoutParams) valueTextView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : 70;
+        int switchSpace = AndroidUtilities.dp(70);
+        ((MarginLayoutParams) textView.getLayoutParams()).leftMargin = LocaleController.isRTL ? switchSpace : padding;
+        ((MarginLayoutParams) textView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : switchSpace;
+        ((MarginLayoutParams) valueTextView.getLayoutParams()).leftMargin = LocaleController.isRTL ? switchSpace : padding;
+        ((MarginLayoutParams) valueTextView.getLayoutParams()).rightMargin = LocaleController.isRTL ? padding : switchSpace;
         imageView.setVisibility(VISIBLE);
         imageView.setPadding(0, 0, 0, 0);
         imageView.setBackground(null);
