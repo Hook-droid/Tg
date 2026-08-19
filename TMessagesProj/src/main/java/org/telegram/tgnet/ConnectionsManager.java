@@ -246,6 +246,22 @@ public class ConnectionsManager extends BaseController {
         if (systemVersion.trim().length() == 0) {
             systemVersion = "SDK Unknown";
         }
+        try {
+            SharedPreferences lyrxPrefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+            String lyrxModel = lyrxPrefs.getString("lyrxFakeDeviceModel", "");
+            if (lyrxModel != null && lyrxModel.trim().length() > 0) {
+                deviceModel = lyrxModel;
+                String lyrxSystem = lyrxPrefs.getString("lyrxFakeDeviceSystem", "");
+                if (lyrxSystem != null && lyrxSystem.trim().length() > 0) {
+                    systemVersion = lyrxSystem;
+                }
+                String lyrxApp = lyrxPrefs.getString("lyrxFakeDeviceApp", "");
+                if (lyrxApp != null && lyrxApp.trim().length() > 0) {
+                    appVersion = lyrxApp;
+                }
+            }
+        } catch (Throwable ignore) {
+        }
         getUserConfig().loadConfig();
         String pushString = getRegId();
         String fingerprint = AndroidUtilities.getCertificateSHA256Fingerprint();
