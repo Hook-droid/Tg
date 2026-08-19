@@ -525,8 +525,76 @@ public class LocationController extends BaseController implements NotificationCe
         });
     }
 
+    private static double[] lyrxRoutePosition() {
+        try {
+            String raw = SharedConfig.lyrxFakeRoute;
+            if (raw == null || raw.length() == 0 || SharedConfig.lyrxFakeSpeed <= 0f) {
+                return null;
+            }
+            String[] parts = raw.split(";");
+            if (parts.length < 2) {
+                return null;
+            }
+            double[] lats = new double[parts.length];
+            double[] lons = new double[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                String[] pair = parts[i].split(",");
+                lats[i] = Double.parseDouble(pair[0]);
+                lons[i] = Double.parseDouble(pair[1]);
+            }
+
+            float[] segment = new float[1];
+            double[] segLength = new double[parts.length - 1];
+            double total = 0;
+            for (int i = 0; i < parts.length - 1; i++) {
+                Location.distanceBetween(lats[i], lons[i], lats[i + 1], lons[i + 1], segment);
+                segLength[i] = segment[0];
+                total += segment[0];
+            }
+            if (total <= 0) {
+                return null;
+            }
+
+            long startTime = SharedConfig.lyrxFakeRouteStart > 0 ? SharedConfig.lyrxFakeRouteStart : System.currentTimeMillis();
+            double elapsed = (System.currentTimeMillis() - startTime) / 1000.0;
+            double metersPerSecond = SharedConfig.lyrxFakeSpeed * 1000.0 / 3600.0;
+            double travelled = elapsed * metersPerSecond;
+
+            double cycle = total * 2;
+            double inCycle = travelled % cycle;
+            double along = inCycle <= total ? inCycle : cycle - inCycle;
+
+            double walked = 0;
+            for (int i = 0; i < segLength.length; i++) {
+                if (walked + segLength[i] >= along || i == segLength.length - 1) {
+                    double ratio = segLength[i] <= 0 ? 0 : (along - walked) / segLength[i];
+                    if (ratio < 0) ratio = 0;
+                    if (ratio > 1) ratio = 1;
+                    double lat = lats[i] + (lats[i + 1] - lats[i]) * ratio;
+                    double lon = lons[i] + (lons[i + 1] - lons[i]) * ratio;
+                    return new double[]{lat, lon};
+                }
+                walked += segLength[i];
+            }
+        } catch (Throwable ignore) {
+        }
+        return null;
+    }
+
     public static Location lyrxFakeLocation() {
         Location fake = new Location("gps");
+        double[] route = lyrxRoutePosition();
+        if (route != null) {
+            fake.setLatitude(route[0]);
+            fake.setLongitude(route[1]);
+            fake.setSpeed(SharedConfig.lyrxFakeSpeed * 1000f / 3600f);
+            fake.setAccuracy(8f);
+            fake.setTime(System.currentTimeMillis());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+                fake.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+            }
+            return fake;
+        }
         fake.setLatitude(SharedConfig.lyrxFakeLat);
         fake.setLongitude(SharedConfig.lyrxFakeLon);
         fake.setAccuracy(8f);
@@ -538,7 +606,11 @@ public class LocationController extends BaseController implements NotificationCe
     }
 
     public static boolean lyrxSpoofing() {
-        return SharedConfig.lyrxFakeLocation && (SharedConfig.lyrxFakeLat != 0f || SharedConfig.lyrxFakeLon != 0f);
+        if (!SharedConfig.lyrxFakeLocation) {
+            return false;
+        }
+        return SharedConfig.lyrxFakeLat != 0f || SharedConfig.lyrxFakeLon != 0f
+                || (SharedConfig.lyrxFakeRoute != null && SharedConfig.lyrxFakeRoute.length() > 0);
     }
 
     private void setLastKnownLocation(Location location) {
