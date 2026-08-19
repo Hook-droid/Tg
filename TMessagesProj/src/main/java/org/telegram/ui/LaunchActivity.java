@@ -6976,6 +6976,14 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         if (Theme.selectedAutoNightType == Theme.AUTO_NIGHT_TYPE_SYSTEM) {
             Theme.checkAutoNightThemeConditions();
         }
+        try {
+            org.telegram.messenger.LyrxUpdater.check(() -> {
+                if (!isFinishing()) {
+                    new org.telegram.ui.LyrxUpdateDialog(LaunchActivity.this).show();
+                }
+            });
+        } catch (Throwable ignore) {
+        }
         checkWasMutedByAdmin(true);
         //FileLog.d("UI resume time = " + (SystemClock.elapsedRealtime() - ApplicationLoader.startTime));
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.startAllHeavyOperations, 4096);
