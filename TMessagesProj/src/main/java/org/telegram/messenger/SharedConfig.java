@@ -322,6 +322,7 @@ public class SharedConfig {
     public static boolean lyrxFakeLocation = false;
     public static float lyrxFakeLat = 0f;
     public static float lyrxFakeLon = 0f;
+    public static int lyrxVoiceEffect = 0;
     public static String lyrxFakeRoute = "";
     public static float lyrxFakeSpeed = 0f;
     public static long lyrxFakeRouteStart = 0L;
@@ -580,6 +581,7 @@ public class SharedConfig {
             lyrxFakeLocation = lyrxPrefs.getBoolean("lyrxFakeLocation", false);
             lyrxFakeLat = lyrxPrefs.getFloat("lyrxFakeLat", 0f);
             lyrxFakeLon = lyrxPrefs.getFloat("lyrxFakeLon", 0f);
+            lyrxVoiceEffect = lyrxPrefs.getInt("lyrxVoiceEffect", 0);
             lyrxFakeRoute = lyrxPrefs.getString("lyrxFakeRoute", "");
             lyrxFakeSpeed = lyrxPrefs.getFloat("lyrxFakeSpeed", 0f);
             lyrxFakeRouteStart = lyrxPrefs.getLong("lyrxFakeRouteStart", 0L);

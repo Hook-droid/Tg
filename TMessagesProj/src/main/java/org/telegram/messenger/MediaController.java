@@ -1160,6 +1160,8 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                         FileLog.e(e);
                     }
                     buffer.position(0);
+                    LyrxVoiceChanger.process(buffer, len, sampleRate);
+                    buffer.position(0);
                     final double amplitude = Math.sqrt(sum / len / 2);
                     final ByteBuffer finalBuffer = buffer;
                     final boolean flush = len != buffer.capacity();
@@ -1408,6 +1410,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
         recordQueue.postRunnable(() -> {
             try {
+                LyrxVoiceChanger.reset();
                 sampleRate = 48000;
                 int minBuferSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
                 if (minBuferSize <= 0) {
