@@ -30570,7 +30570,7 @@ public class ChatActivity extends BaseFragment implements
                 String name = currentUser != null ? UserObject.getFirstName(currentUser) : "";
                 revokeCell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
                 revokeCell.setBackground(Theme.getSelectorDrawable(false));
-                revokeCell.setText(LocaleController.formatString(R.string.DeleteMessagesOptionAlso, name), "", false, false);
+                revokeCell.setText("Also Delete For " + name, "", false, false);
                 revokeCell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
                 ll.addView(revokeCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
                 final org.telegram.ui.Cells.CheckBoxCell fRevoke = revokeCell;
@@ -30583,11 +30583,7 @@ public class ChatActivity extends BaseFragment implements
 
             org.telegram.ui.Cells.CheckBoxCell cell = new org.telegram.ui.Cells.CheckBoxCell(getParentActivity(), 1, themeDelegate);
             cell.setBackground(Theme.getSelectorDrawable(false));
-            SpannableStringBuilder deleteAllText = new SpannableStringBuilder("Delete All Messages");
-            int brandStart = deleteAllText.length();
-            deleteAllText.append(" | LyrxGram");
-            deleteAllText.setSpan(new ForegroundColorSpan(Theme.getColor(Theme.key_dialogTextGray2, themeDelegate)), brandStart, deleteAllText.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            cell.setText(deleteAllText, "", false, false);
+            cell.setText("Delete All Messages", "", false, false);
             cell.setTextColor(0xFFFFB020);
             cell.setPadding(LocaleController.isRTL ? AndroidUtilities.dp(16) : AndroidUtilities.dp(8), 0, LocaleController.isRTL ? AndroidUtilities.dp(8) : AndroidUtilities.dp(16), 0);
             ll.addView(cell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
@@ -41468,7 +41464,14 @@ public class ChatActivity extends BaseFragment implements
                 if (!AndroidUtilities.isMapsInstalled(ChatActivity.this)) {
                     return;
                 }
-                if (message.isLiveLocation()) {
+                TLRPC.MessageMedia lyrxMedia = MessageObject.getMedia(message.messageOwner);
+                if (lyrxMedia != null && lyrxMedia.geo != null) {
+                    String lyrxTitle = null;
+                    if (lyrxMedia instanceof TLRPC.TL_messageMediaVenue) {
+                        lyrxTitle = ((TLRPC.TL_messageMediaVenue) lyrxMedia).title;
+                    }
+                    presentFragment(new LyrxMapPickerActivity(lyrxMedia.geo.lat, lyrxMedia.geo._long, lyrxTitle));
+                } else if (message.isLiveLocation()) {
                     LocationActivity fragment = new LocationActivity(currentChat == null || ChatObject.canSendMessages(currentChat) || currentChat.megagroup ? 2 : LocationActivity.LOCATION_TYPE_LIVE_VIEW);
                     fragment.setDelegate(ChatActivity.this);
                     fragment.setMessageObject(message);

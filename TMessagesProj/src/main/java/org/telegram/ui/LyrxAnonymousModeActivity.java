@@ -599,8 +599,7 @@ public class LyrxAnonymousModeActivity extends BaseFragment {
             mapPreview.setImageDrawable(null);
             return;
         }
-        int width = Math.max(1, (int) ((AndroidUtilities.displaySize.x - AndroidUtilities.dp(24)) / AndroidUtilities.density));
-        String url = AndroidUtilities.formapMapUrl(currentAccount, SharedConfig.lyrxFakeLat, SharedConfig.lyrxFakeLon, width, 160, true, 15, 3);
+        String url = AndroidUtilities.formapMapUrl(currentAccount, SharedConfig.lyrxFakeLat, SharedConfig.lyrxFakeLon, 300, 150, true, 14, 3);
         mapPreview.setImage(url, null, null);
     }
 

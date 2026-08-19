@@ -30,10 +30,29 @@ public class LyrxMapPickerActivity extends BaseFragment {
     private MapView mapView;
     private TextView coordsView;
 
+    private final boolean viewOnly;
+    private final double viewLat;
+    private final double viewLon;
+    private final String viewTitle;
+
+    public LyrxMapPickerActivity() {
+        this.viewOnly = false;
+        this.viewLat = 0;
+        this.viewLon = 0;
+        this.viewTitle = null;
+    }
+
+    public LyrxMapPickerActivity(double lat, double lon, String title) {
+        this.viewOnly = true;
+        this.viewLat = lat;
+        this.viewLon = lon;
+        this.viewTitle = title;
+    }
+
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setTitle("Pick A Location");
+        actionBar.setTitle(viewOnly ? (viewTitle == null || viewTitle.length() == 0 ? "Location" : viewTitle) : "Pick A Location");
         actionBar.setAllowOverlayTitle(true);
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
@@ -60,17 +79,39 @@ public class LyrxMapPickerActivity extends BaseFragment {
         mapView.setVerticalMapRepetitionEnabled(false);
         mapView.getZoomController().setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER);
 
-        double startLat = SharedConfig.lyrxFakeLat != 0f ? SharedConfig.lyrxFakeLat : 41.0082;
-        double startLon = SharedConfig.lyrxFakeLon != 0f ? SharedConfig.lyrxFakeLon : 28.9784;
-        mapView.getController().setZoom(SharedConfig.lyrxFakeLat != 0f ? 14.0 : 5.0);
+        double startLat;
+        double startLon;
+        if (viewOnly) {
+            startLat = viewLat;
+            startLon = viewLon;
+            mapView.getController().setZoom(15.0);
+        } else {
+            startLat = SharedConfig.lyrxFakeLat != 0f ? SharedConfig.lyrxFakeLat : 41.0082;
+            startLon = SharedConfig.lyrxFakeLon != 0f ? SharedConfig.lyrxFakeLon : 28.9784;
+            mapView.getController().setZoom(SharedConfig.lyrxFakeLat != 0f ? 14.0 : 5.0);
+        }
         mapView.getController().setCenter(new GeoPoint(startLat, startLon));
 
-        root.addView(mapView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 0, 0, 96));
+        root.addView(mapView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP, 0, 0, 0, viewOnly ? 0 : 96));
 
         ImageView pin = new ImageView(context);
         pin.setImageResource(R.drawable.map_pin2);
-        FrameLayout.LayoutParams pinParams = LayoutHelper.createFrame(28, 40, Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-        root.addView(pin, pinParams);
+        pin.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        if (viewOnly) {
+            org.osmdroid.views.overlay.Marker marker = new org.osmdroid.views.overlay.Marker(mapView);
+            marker.setPosition(new GeoPoint(startLat, startLon));
+            marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM);
+            marker.setIcon(context.getResources().getDrawable(R.drawable.map_pin2));
+            mapView.getOverlays().add(marker);
+            pin.setVisibility(View.GONE);
+        } else {
+            root.addView(pin, LayoutHelper.createFrame(28, 40, Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL, 0, 0, 0, 136));
+        }
+
+        if (viewOnly) {
+            fragmentView = root;
+            return fragmentView;
+        }
 
         FrameLayout bottom = new FrameLayout(context);
         GradientDrawable bottomBg = new GradientDrawable();
