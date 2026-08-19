@@ -2289,25 +2289,134 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             phoneOutlineView.setText(getString(R.string.PhoneNumber));
             addView(phoneOutlineView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 58, 16, 8, 16, 8));
 
-            // === LyrxGram Free Proxy karti (ADIM 1: sadece arayuz) ===
-            FrameLayout proxyCard = new FrameLayout(context);
-            android.graphics.drawable.GradientDrawable proxyCardBg = new android.graphics.drawable.GradientDrawable();
-            proxyCardBg.setColor(0xFF1C1C1E);
-            proxyCardBg.setCornerRadius(dp(24));
-            proxyCardBg.setStroke(dp(1), 0x40FFFFFF);
-            proxyCard.setBackground(proxyCardBg);
+            // === LyrxGram karti (sahte cihaz + proxy) ===
+            LinearLayout lyrxCard = new LinearLayout(context);
+            lyrxCard.setOrientation(LinearLayout.VERTICAL);
+            android.graphics.drawable.GradientDrawable lyrxCardBg = new android.graphics.drawable.GradientDrawable();
+            lyrxCardBg.setColor(0xFF1C1C1E);
+            lyrxCardBg.setCornerRadius(dp(18));
+            lyrxCardBg.setStroke(dp(1), 0x26FFFFFF);
+            lyrxCard.setBackground(lyrxCardBg);
 
-            FrameLayout proxyIconBg = new FrameLayout(context);
-            android.graphics.drawable.GradientDrawable proxyIconBgD = new android.graphics.drawable.GradientDrawable();
-            proxyIconBgD.setColor(0xFF2C2C2E);
-            proxyIconBgD.setCornerRadius(dp(16));
-            proxyIconBgD.setStroke(dp(1), 0x40FFFFFF);
-            proxyIconBg.setBackground(proxyIconBgD);
+            FrameLayout deviceRow = new FrameLayout(context);
+
+            ImageView deviceIcon = new ImageView(context);
+            deviceIcon.setImageResource(R.drawable.device_phone_android);
+            deviceIcon.setColorFilter(0xFF8E8E93);
+            deviceIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            deviceRow.addView(deviceIcon, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
+
+            LinearLayout deviceTextCol = new LinearLayout(context);
+            deviceTextCol.setOrientation(LinearLayout.VERTICAL);
+
+            TextView deviceTitle = new TextView(context);
+            deviceTitle.setText("Choose A Fake Device");
+            deviceTitle.setTextColor(0xFFFFFFFF);
+            deviceTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+            deviceTitle.setTypeface(AndroidUtilities.bold());
+            deviceTextCol.addView(deviceTitle, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+
+            TextView deviceValue = new TextView(context);
+            deviceValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            deviceTextCol.addView(deviceValue, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 1, 0, 0));
+
+            deviceRow.addView(deviceTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 52, 8, 48, 8));
+
+            ImageView deviceArrow = new ImageView(context);
+            deviceArrow.setImageResource(R.drawable.arrow_more);
+            deviceArrow.setColorFilter(0xFF8E8E93);
+            deviceRow.addView(deviceArrow, LayoutHelper.createFrame(20, 20, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+
+            lyrxCard.addView(deviceRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56));
+
+            LinearLayout brandsBox = new LinearLayout(context);
+            brandsBox.setOrientation(LinearLayout.VERTICAL);
+            brandsBox.setVisibility(View.GONE);
+            lyrxCard.addView(brandsBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+            final Runnable[] refreshDeviceLabel = new Runnable[1];
+            refreshDeviceLabel[0] = () -> {
+                String label = org.telegram.messenger.LyrxFakeDevices.currentLabel();
+                if (label == null) {
+                    deviceValue.setText("Your Real Device Is Reported");
+                    deviceValue.setTextColor(0xFF8E8E93);
+                } else {
+                    deviceValue.setText(label);
+                    deviceValue.setTextColor(0xFF4CD964);
+                }
+            };
+            refreshDeviceLabel[0].run();
+
+            for (org.telegram.messenger.LyrxFakeDevices.Brand brand : org.telegram.messenger.LyrxFakeDevices.getBrands()) {
+                FrameLayout brandRow = new FrameLayout(context);
+
+                TextView brandName = new TextView(context);
+                brandName.setText(brand.name);
+                brandName.setTextColor(0xFFFFFFFF);
+                brandName.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                brandRow.addView(brandName, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 52, 0, 48, 0));
+
+                ImageView brandArrow = new ImageView(context);
+                brandArrow.setImageResource(R.drawable.arrow_more);
+                brandArrow.setColorFilter(0xFF8E8E93);
+                brandRow.addView(brandArrow, LayoutHelper.createFrame(18, 18, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
+
+                LinearLayout modelsBox = new LinearLayout(context);
+                modelsBox.setOrientation(LinearLayout.VERTICAL);
+                modelsBox.setVisibility(View.GONE);
+
+                for (org.telegram.messenger.LyrxFakeDevices.Device device : brand.devices) {
+                    TextView modelRow = new TextView(context);
+                    modelRow.setText(device.label);
+                    modelRow.setTextColor(0xFFB0B3B8);
+                    modelRow.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+                    modelRow.setGravity(Gravity.CENTER_VERTICAL);
+                    modelRow.setPadding(dp(68), 0, dp(16), 0);
+                    modelRow.setOnClickListener(v -> {
+                        org.telegram.messenger.LyrxFakeDevices.select(device);
+                        refreshDeviceLabel[0].run();
+                        modelsBox.setVisibility(View.GONE);
+                        brandArrow.setRotation(0);
+                        brandsBox.setVisibility(View.GONE);
+                        deviceArrow.setRotation(0);
+                        try {
+                            org.telegram.ui.Components.BulletinFactory.global()
+                                    .createSimpleBulletin(R.raw.chats_infotip, device.label + " selected. Restart the app to apply.").show();
+                        } catch (Throwable ignore) {
+                        }
+                    });
+                    modelsBox.addView(modelRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 42));
+                }
+
+                brandRow.setOnClickListener(v -> {
+                    boolean open = modelsBox.getVisibility() != View.VISIBLE;
+                    modelsBox.setVisibility(open ? View.VISIBLE : View.GONE);
+                    brandArrow.setRotation(open ? 90 : 0);
+                });
+
+                brandsBox.addView(brandRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 44));
+                brandsBox.addView(modelsBox, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+            }
+
+            deviceRow.setOnClickListener(v -> {
+                boolean open = brandsBox.getVisibility() != View.VISIBLE;
+                brandsBox.setVisibility(open ? View.VISIBLE : View.GONE);
+                deviceArrow.setRotation(open ? 90 : 0);
+            });
+
+            View lyrxDivider = new View(context);
+            lyrxDivider.setBackgroundColor(0x1AFFFFFF);
+            LinearLayout.LayoutParams dividerParams = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1);
+            dividerParams.leftMargin = dp(52);
+            lyrxCard.addView(lyrxDivider, dividerParams);
+
+            FrameLayout proxyRow = new FrameLayout(context);
+
             ImageView proxyIcon = new ImageView(context);
             proxyIcon.setImageResource(R.drawable.menu_privacy_policy);
-            proxyIcon.setColorFilter(0xFFFFFFFF);
-            proxyIconBg.addView(proxyIcon, LayoutHelper.createFrame(28, 28, Gravity.CENTER));
-            proxyCard.addView(proxyIconBg, LayoutHelper.createFrame(48, 48, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
+            proxyIcon.setColorFilter(0xFF8E8E93);
+            proxyIcon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            proxyRow.addView(proxyIcon, LayoutHelper.createFrame(24, 24, Gravity.LEFT | Gravity.CENTER_VERTICAL, 16, 0, 0, 0));
 
             LinearLayout proxyTextCol = new LinearLayout(context);
             proxyTextCol.setOrientation(LinearLayout.VERTICAL);
@@ -2315,30 +2424,25 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
             TextView proxyTitle = new TextView(context);
             proxyTitle.setText("Free Proxy");
             proxyTitle.setTextColor(0xFFFFFFFF);
-            proxyTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+            proxyTitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             proxyTitle.setTypeface(AndroidUtilities.bold());
             proxyTextCol.addView(proxyTitle, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
-
-            TextView proxyDesc = new TextView(context);
-            proxyDesc.setText("Wait 5-10 Seconds To Connect");
-            proxyDesc.setTextColor(0xFF8E8E93);
-            proxyDesc.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-            proxyTextCol.addView(proxyDesc, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0));
 
             proxyStatusView = new TextView(context);
             proxyStatusView.setText("Inactive");
             proxyStatusView.setTextColor(0xFF8E8E93);
-            proxyStatusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-            proxyStatusView.setTypeface(AndroidUtilities.bold());
-            proxyTextCol.addView(proxyStatusView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
+            proxyStatusView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+            proxyTextCol.addView(proxyStatusView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 0, 1, 0, 0));
 
-            proxyCard.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 76, 8, 66, 8));
+            proxyRow.addView(proxyTextCol, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL, 52, 8, 66, 8));
 
             proxySwitch = new android.widget.Switch(context);
             updateProxySwitchColors(false);
-            proxyCard.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 16, 0));
+            proxyRow.addView(proxySwitch, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 12, 0));
 
-            addView(proxyCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 92, 16, 12, 16, 0));
+            lyrxCard.addView(proxyRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56));
+
+            addView(lyrxCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16, 10, 16, 0));
 
             proxySwitch.setOnCheckedChangeListener((view, isChecked) -> {
                 updateProxySwitchColors(isChecked);
@@ -2348,7 +2452,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                     stopProxyConnection();
                 }
             });
-            // === Free Proxy karti sonu ===
+            // === LyrxGram karti sonu ===
 
             plusTextView = new TextView(context);
             plusTextView.setText("+");
