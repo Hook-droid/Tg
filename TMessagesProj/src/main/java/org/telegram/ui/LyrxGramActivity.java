@@ -115,6 +115,7 @@ public class LyrxGramActivity extends BaseFragment {
         catGroup.addView(createDivider(context));
         catGroup.addView(createRow(context, R.drawable.msg_message, "Chat Modes", true, () -> presentFragment(new LyrxChatModesActivity())));
         catGroup.addView(createDivider(context));
+        catGroup.addView(createRow(context, R.drawable.msg_theme, "Theme & Interface", true, () -> presentFragment(new LyrxInterfaceActivity())));
         catGroup.addView(createRow(context, R.drawable.msg_fave, "Other", true, () -> presentFragment(new LyrxOtherActivity())));
         center.addView(catGroup, groupParams());
 

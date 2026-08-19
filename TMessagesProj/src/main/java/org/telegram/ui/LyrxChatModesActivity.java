@@ -21,6 +21,10 @@ import org.telegram.ui.Components.LayoutHelper;
 
 public class LyrxChatModesActivity extends BaseFragment {
 
+    private TextView voiceValue;
+    private android.widget.ImageView voiceArrow;
+    private LinearLayout voiceList;
+
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
@@ -231,6 +235,95 @@ public class LyrxChatModesActivity extends BaseFragment {
         LinearLayout.LayoutParams trgp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
         root.addView(trGroup, trgp);
 
+        TextView voiceHeader = new TextView(context);
+        voiceHeader.setText("Voice Changer");
+        voiceHeader.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        voiceHeader.setTextSize(15);
+        voiceHeader.setTypeface(AndroidUtilities.bold());
+        voiceHeader.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        root.addView(voiceHeader, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        LinearLayout voiceGroup = new LinearLayout(context);
+        voiceGroup.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable voiceBg = new android.graphics.drawable.GradientDrawable();
+        voiceBg.setColor(Theme.getColor(Theme.key_windowBackgroundWhite));
+        voiceBg.setCornerRadius(AndroidUtilities.dp(16));
+        voiceGroup.setBackground(voiceBg);
+
+        android.widget.FrameLayout voiceHeadRow = new android.widget.FrameLayout(context);
+
+        android.widget.ImageView voiceIcon = new android.widget.ImageView(context);
+        voiceIcon.setImageResource(R.drawable.msg_voice_unmuted);
+        voiceIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        voiceIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), android.graphics.PorterDuff.Mode.SRC_IN));
+        voiceHeadRow.addView(voiceIcon, LayoutHelper.createFrame(24, 24, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 19, 0, 0, 0));
+
+        TextView voiceTitle = new TextView(context);
+        voiceTitle.setText("Sound Editor");
+        voiceTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        voiceTitle.setTextSize(16);
+        voiceHeadRow.addView(voiceTitle, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 65, 0, 0, 0));
+
+        voiceArrow = new android.widget.ImageView(context);
+        voiceArrow.setImageResource(R.drawable.arrow_more);
+        voiceArrow.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), android.graphics.PorterDuff.Mode.SRC_IN));
+        voiceHeadRow.addView(voiceArrow, LayoutHelper.createFrame(20, 20, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
+
+        voiceValue = new TextView(context);
+        voiceValue.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
+        voiceValue.setTextSize(15);
+        voiceHeadRow.addView(voiceValue, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 46, 0));
+
+        voiceGroup.addView(voiceHeadRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 52));
+
+        voiceList = new LinearLayout(context);
+        voiceList.setOrientation(LinearLayout.VERTICAL);
+        voiceList.setVisibility(View.GONE);
+        voiceGroup.addView(voiceList, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        for (int i = 0; i < org.telegram.messenger.LyrxVoiceChanger.NAMES.length; i++) {
+            final int index = i;
+            android.widget.FrameLayout voiceRow = new android.widget.FrameLayout(context);
+
+            TextView voiceName = new TextView(context);
+            voiceName.setText(org.telegram.messenger.LyrxVoiceChanger.NAMES[i]);
+            voiceName.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            voiceName.setTextSize(15);
+            voiceRow.addView(voiceName, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 65, 0, 46, 0));
+
+            android.widget.ImageView voiceCheck = new android.widget.ImageView(context);
+            voiceCheck.setImageResource(R.drawable.msg_check_s);
+            voiceCheck.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteValueText), android.graphics.PorterDuff.Mode.SRC_IN));
+            voiceCheck.setVisibility(SharedConfig.lyrxVoiceEffect == i ? View.VISIBLE : View.INVISIBLE);
+            voiceRow.addView(voiceCheck, LayoutHelper.createFrame(20, 20, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 18, 0));
+
+            voiceRow.setTag(voiceCheck);
+            voiceRow.setOnClickListener(v -> {
+                SharedConfig.lyrxVoiceEffect = index;
+                MessagesController.getGlobalMainSettings().edit().putInt("lyrxVoiceEffect", index).apply();
+                org.telegram.messenger.LyrxVoiceChanger.reset();
+                updateVoiceSelection();
+            });
+            voiceList.addView(voiceRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 46));
+        }
+
+        voiceHeadRow.setOnClickListener(v -> {
+            boolean open = voiceList.getVisibility() != View.VISIBLE;
+            voiceList.setVisibility(open ? View.VISIBLE : View.GONE);
+            voiceArrow.setRotation(open ? 90 : 0);
+        });
+
+        root.addView(voiceGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView voiceInfo = new TextView(context);
+        voiceInfo.setText("The effect is applied while you record, so everyone hears it - not only you. Pick Off for your normal voice.");
+        voiceInfo.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+        voiceInfo.setTextSize(13);
+        voiceInfo.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(10), AndroidUtilities.dp(16), AndroidUtilities.dp(6));
+        root.addView(voiceInfo, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        updateVoiceSelection();
+
         scroll.addView(root, new android.widget.FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         fragmentView = scroll;
         return fragmentView;
@@ -296,6 +389,24 @@ public class LyrxChatModesActivity extends BaseFragment {
     private String clearStorageText() {
         long size = org.telegram.messenger.LyrxDeletedStorage.totalSize();
         return "Clear Deleted Storage (" + org.telegram.messenger.LyrxDeletedStorage.formatSize(size) + ")";
+    }
+
+    private void updateVoiceSelection() {
+        int index = SharedConfig.lyrxVoiceEffect;
+        if (index < 0 || index >= org.telegram.messenger.LyrxVoiceChanger.NAMES.length) {
+            index = 0;
+        }
+        if (voiceValue != null) {
+            voiceValue.setText(org.telegram.messenger.LyrxVoiceChanger.NAMES[index]);
+        }
+        if (voiceList != null) {
+            for (int i = 0; i < voiceList.getChildCount(); i++) {
+                View child = voiceList.getChildAt(i);
+                if (child.getTag() instanceof android.widget.ImageView) {
+                    ((android.widget.ImageView) child.getTag()).setVisibility(SharedConfig.lyrxVoiceEffect == i ? View.VISIBLE : View.INVISIBLE);
+                }
+            }
+        }
     }
 
     private View divider(Context context) {
