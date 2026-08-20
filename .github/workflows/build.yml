@@ -172,7 +172,31 @@ jobs:
       - name: Paket adini degistir
         run: |
           sed -i 's/APP_PACKAGE=org.telegram.messenger/APP_PACKAGE=com.lyrx.gram/' gradle.properties
-          find . -name "google-services.json" -exec sed -i 's/org.telegram.messenger/com.lyrx.gram/g' {} +
+          cat > gs_fix.py << 'GSEOF'
+          import json, copy, glob
+          for path in glob.glob("**/google-services.json", recursive=True):
+              data = json.load(open(path, encoding="utf-8"))
+              clients = data.get("client", [])
+              names = [c["client_info"]["android_client_info"]["package_name"] for c in clients]
+              if "com.lyrx.gram" in names:
+                  continue
+              base = None
+              for c in clients:
+                  if c["client_info"]["android_client_info"]["package_name"] == "org.telegram.messenger":
+                      base = c
+                      break
+              if base is None and clients:
+                  base = clients[0]
+              if base is None:
+                  continue
+              extra = copy.deepcopy(base)
+              extra["client_info"]["android_client_info"]["package_name"] = "com.lyrx.gram"
+              clients.append(extra)
+              data["client"] = clients
+              json.dump(data, open(path, "w", encoding="utf-8"), indent=2)
+              print("guncellendi:", path)
+          GSEOF
+          python3 gs_fix.py
           grep -n "APP_PACKAGE" gradle.properties
 
       - name: Sadece arm64 + tek is parcacigi
