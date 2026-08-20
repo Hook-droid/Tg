@@ -221,8 +221,9 @@ public class LyrxMapPickerActivity extends BaseFragment {
 
         org.osmdroid.views.overlay.Marker marker = new org.osmdroid.views.overlay.Marker(mapView);
         marker.setPosition(point);
-        marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_CENTER);
-        marker.setTextIcon(String.valueOf(routePoints.size()));
+        marker.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM);
+        marker.setIcon(getParentActivity().getResources().getDrawable(R.drawable.map_pin2));
+        marker.setTitle(String.valueOf(routePoints.size()));
         mapView.getOverlays().add(marker);
         mapView.invalidate();
         updateAddButton();
