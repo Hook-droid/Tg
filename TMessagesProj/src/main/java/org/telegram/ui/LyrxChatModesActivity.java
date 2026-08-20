@@ -18,11 +18,30 @@ import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Components.LayoutHelper;
+import android.os.Bundle;
+import org.telegram.messenger.FileLog;
+import org.telegram.messenger.MediaController;
+import org.telegram.messenger.SendMessagesHelper;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.Components.BulletinFactory;
 
 public class LyrxChatModesActivity extends BaseFragment {
 
     private TextView voiceValue;
     private android.widget.FrameLayout voiceRow;
+    private TextView ttsVoiceValue;
+    private android.widget.EditText ttsInput;
+    private LinearLayout ttsPreview;
+    private android.widget.ImageView ttsPreviewIcon;
+    private TextView ttsPreviewText;
+    private android.widget.ImageView ttsConvertButton;
+    private android.widget.ImageView ttsDownloadButton;
+    private android.widget.ImageView ttsSendButton;
+    private java.io.File ttsResultFile;
+    private int ttsResultDuration;
+    private int ttsVoiceIndex;
+    private boolean ttsBusy;
 
     @Override
     public View createView(Context context) {
@@ -277,6 +296,96 @@ public class LyrxChatModesActivity extends BaseFragment {
 
         root.addView(voiceGroup, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
+        View ttsDivider = new View(context);
+        ttsDivider.setBackgroundColor(Theme.getColor(Theme.key_divider));
+        LinearLayout.LayoutParams ttsDividerParams = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1);
+        ttsDividerParams.leftMargin = AndroidUtilities.dp(65);
+        voiceGroup.addView(ttsDivider, ttsDividerParams);
+
+        android.widget.FrameLayout ttsRow = new android.widget.FrameLayout(context);
+
+        android.widget.ImageView ttsIcon = new android.widget.ImageView(context);
+        ttsIcon.setImageResource(R.drawable.msg_message);
+        ttsIcon.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        ttsIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), android.graphics.PorterDuff.Mode.SRC_IN));
+        ttsRow.addView(ttsIcon, LayoutHelper.createFrame(24, 24, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 19, 0, 0, 0));
+
+        TextView ttsTitle = new TextView(context);
+        ttsTitle.setText("Text To Voice");
+        ttsTitle.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        ttsTitle.setTextSize(16);
+        ttsRow.addView(ttsTitle, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, android.view.Gravity.LEFT | android.view.Gravity.CENTER_VERTICAL, 65, 0, 0, 0));
+
+        android.widget.ImageView ttsArrow = new android.widget.ImageView(context);
+        ttsArrow.setImageDrawable(new UpDownArrows(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon)));
+        ttsRow.addView(ttsArrow, LayoutHelper.createFrame(14, 20, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 20, 0));
+
+        ttsVoiceValue = new TextView(context);
+        ttsVoiceValue.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText));
+        ttsVoiceValue.setTextSize(15);
+        ttsRow.addView(ttsVoiceValue, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, android.view.Gravity.RIGHT | android.view.Gravity.CENTER_VERTICAL, 0, 0, 44, 0));
+
+        ttsRow.setOnClickListener(v -> showTtsVoiceMenu(ttsRow));
+        voiceGroup.addView(ttsRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 52));
+
+        ttsInput = new android.widget.EditText(context);
+        ttsInput.setHint("Type your message here");
+        ttsInput.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText));
+        ttsInput.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+        ttsInput.setTextSize(15);
+        ttsInput.setBackgroundDrawable(null);
+        ttsInput.setGravity(android.view.Gravity.TOP | android.view.Gravity.LEFT);
+        ttsInput.setMinLines(2);
+        ttsInput.setMaxLines(4);
+        ttsInput.setPadding(AndroidUtilities.dp(65), 0, AndroidUtilities.dp(18), AndroidUtilities.dp(6));
+        voiceGroup.addView(ttsInput, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        ttsPreview = new LinearLayout(context);
+        ttsPreview.setOrientation(LinearLayout.HORIZONTAL);
+        ttsPreview.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        ttsPreview.setVisibility(View.GONE);
+        android.graphics.drawable.GradientDrawable previewBg = new android.graphics.drawable.GradientDrawable();
+        previewBg.setColor(Theme.getColor(Theme.key_chat_inBubble));
+        previewBg.setCornerRadius(AndroidUtilities.dp(14));
+        ttsPreview.setBackground(previewBg);
+        ttsPreview.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(10), AndroidUtilities.dp(14), AndroidUtilities.dp(10));
+
+        ttsPreviewIcon = new android.widget.ImageView(context);
+        ttsPreviewIcon.setImageResource(R.drawable.msg_voice_unmuted);
+        ttsPreviewIcon.setColorFilter(new android.graphics.PorterDuffColorFilter(Theme.getColor(Theme.key_chat_inAudioProgress), android.graphics.PorterDuff.Mode.SRC_IN));
+        ttsPreview.addView(ttsPreviewIcon, LayoutHelper.createLinear(22, 22));
+
+        ttsPreviewText = new TextView(context);
+        ttsPreviewText.setTextColor(Theme.getColor(Theme.key_chat_messageTextIn));
+        ttsPreviewText.setTextSize(14);
+        ttsPreview.addView(ttsPreviewText, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, 10, 0, 0, 0));
+
+        LinearLayout.LayoutParams previewParams = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        previewParams.leftMargin = AndroidUtilities.dp(65);
+        previewParams.rightMargin = AndroidUtilities.dp(18);
+        previewParams.bottomMargin = AndroidUtilities.dp(4);
+        voiceGroup.addView(ttsPreview, previewParams);
+
+        LinearLayout ttsButtons = new LinearLayout(context);
+        ttsButtons.setOrientation(LinearLayout.HORIZONTAL);
+        ttsButtons.setGravity(android.view.Gravity.LEFT);
+
+        ttsConvertButton = createRoundButton(context, R.drawable.lyrx_ic_convert, 0xFF8B5CF6, 0xFF6D28D9, v -> convertTextToVoice());
+        ttsDownloadButton = createRoundButton(context, R.drawable.lyrx_ic_download, 0xFF3390EC, 0xFF1E6FD9, v -> saveTtsFile());
+        ttsSendButton = createRoundButton(context, R.drawable.lyrx_ic_send, 0xFF34C759, 0xFF20A344, v -> sendTtsFile());
+
+        ttsButtons.addView(ttsConvertButton, LayoutHelper.createLinear(42, 42, 0, 0, 10, 0));
+        ttsButtons.addView(ttsDownloadButton, LayoutHelper.createLinear(42, 42, 0, 0, 10, 0));
+        ttsButtons.addView(ttsSendButton, LayoutHelper.createLinear(42, 42));
+
+        LinearLayout.LayoutParams buttonsParams = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        buttonsParams.leftMargin = AndroidUtilities.dp(65);
+        buttonsParams.bottomMargin = AndroidUtilities.dp(12);
+        voiceGroup.addView(ttsButtons, buttonsParams);
+
+        updateTtsVoiceLabel();
+        updateTtsButtons();
+
         TextView voiceInfo = new TextView(context);
         voiceInfo.setText("The effect is applied while you record, so everyone hears it - not only you. Pick Off for your normal voice.");
         voiceInfo.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
@@ -428,6 +537,278 @@ public class LyrxChatModesActivity extends BaseFragment {
         }
 
         window[0].showAtLocation(fragmentView, android.view.Gravity.TOP | android.view.Gravity.LEFT, x, y);
+    }
+
+    private android.widget.ImageView createRoundButton(Context context, int icon, int colorTop, int colorBottom, View.OnClickListener listener) {
+        android.widget.ImageView button = new android.widget.ImageView(context);
+        button.setImageResource(icon);
+        button.setScaleType(android.widget.ImageView.ScaleType.CENTER_INSIDE);
+        button.setColorFilter(new android.graphics.PorterDuffColorFilter(0xFFFFFFFF, android.graphics.PorterDuff.Mode.SRC_IN));
+
+        android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{colorTop, colorBottom});
+        background.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        button.setBackground(background);
+        button.setElevation(AndroidUtilities.dp(3));
+        button.setPadding(AndroidUtilities.dp(11), AndroidUtilities.dp(11), AndroidUtilities.dp(11), AndroidUtilities.dp(11));
+
+        button.setOnTouchListener((view, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                view.animate().scaleX(0.88f).scaleY(0.88f).setDuration(90).start();
+            } else if (event.getAction() == android.view.MotionEvent.ACTION_UP
+                    || event.getAction() == android.view.MotionEvent.ACTION_CANCEL) {
+                view.animate().scaleX(1f).scaleY(1f).setDuration(140)
+                        .setInterpolator(new android.view.animation.OvershootInterpolator(2.4f)).start();
+            }
+            return false;
+        });
+        button.setOnClickListener(listener);
+        return button;
+    }
+
+    private void startConvertSpin() {
+        if (ttsConvertButton == null) {
+            return;
+        }
+        ttsConvertButton.animate().cancel();
+        ttsConvertButton.setRotation(0);
+        spinConvert();
+    }
+
+    private void spinConvert() {
+        if (ttsConvertButton == null || !ttsBusy) {
+            return;
+        }
+        ttsConvertButton.animate()
+                .rotationBy(360f)
+                .setDuration(900)
+                .setInterpolator(new android.view.animation.LinearInterpolator())
+                .withEndAction(this::spinConvert)
+                .start();
+    }
+
+    private void stopConvertSpin() {
+        if (ttsConvertButton == null) {
+            return;
+        }
+        ttsConvertButton.animate().cancel();
+        ttsConvertButton.animate().rotation(0f).setDuration(200).start();
+    }
+
+    private void popButton(View button) {
+        if (button == null) {
+            return;
+        }
+        button.animate().cancel();
+        button.setScaleX(0.6f);
+        button.setScaleY(0.6f);
+        button.animate().scaleX(1f).scaleY(1f).setDuration(320)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(3f)).start();
+    }
+
+    private void updateTtsVoiceLabel() {
+        if (ttsVoiceValue != null) {
+            ttsVoiceValue.setText(org.telegram.messenger.LyrxTextToVoice.NAMES[ttsVoiceIndex]);
+        }
+    }
+
+    private void updateTtsButtons() {
+        boolean ready = ttsResultFile != null && ttsResultFile.exists();
+        if (ttsDownloadButton != null) {
+            ttsDownloadButton.setAlpha(ready ? 1f : 0.35f);
+            ttsDownloadButton.setEnabled(ready);
+        }
+        if (ttsSendButton != null) {
+            ttsSendButton.setAlpha(ready ? 1f : 0.35f);
+            ttsSendButton.setEnabled(ready);
+        }
+        if (ttsConvertButton != null) {
+            ttsConvertButton.setAlpha(ttsBusy ? 0.4f : 1f);
+            ttsConvertButton.setEnabled(!ttsBusy);
+        }
+    }
+
+    private void showTtsVoiceMenu(View anchor) {
+        if (getParentActivity() == null || fragmentView == null) {
+            return;
+        }
+        org.telegram.ui.ActionBar.ActionBarPopupWindow.ActionBarPopupWindowLayout layout =
+                new org.telegram.ui.ActionBar.ActionBarPopupWindow.ActionBarPopupWindowLayout(getParentActivity());
+        final org.telegram.ui.ActionBar.ActionBarPopupWindow[] window = new org.telegram.ui.ActionBar.ActionBarPopupWindow[1];
+        int count = org.telegram.messenger.LyrxTextToVoice.NAMES.length;
+        for (int i = 0; i < count; i++) {
+            final int index = i;
+            org.telegram.ui.ActionBar.ActionBarMenuSubItem item =
+                    new org.telegram.ui.ActionBar.ActionBarMenuSubItem(getParentActivity(), i == 0, i == count - 1);
+            item.setText(org.telegram.messenger.LyrxTextToVoice.NAMES[i]);
+            item.setChecked(ttsVoiceIndex == i);
+            item.setOnClickListener(v -> {
+                ttsVoiceIndex = index;
+                updateTtsVoiceLabel();
+                if (window[0] != null) {
+                    window[0].dismiss();
+                }
+            });
+            layout.addView(item, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
+        }
+
+        window[0] = new org.telegram.ui.ActionBar.ActionBarPopupWindow(layout, LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        window[0].setOutsideTouchable(true);
+        window[0].setFocusable(true);
+        window[0].setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT));
+        window[0].setAnimationStyle(R.style.PopupContextAnimation);
+        window[0].setInputMethodMode(org.telegram.ui.ActionBar.ActionBarPopupWindow.INPUT_METHOD_NOT_NEEDED);
+
+        layout.measure(
+                android.view.View.MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.x, android.view.View.MeasureSpec.AT_MOST),
+                android.view.View.MeasureSpec.makeMeasureSpec(AndroidUtilities.displaySize.y, android.view.View.MeasureSpec.AT_MOST));
+
+        int[] location = new int[2];
+        anchor.getLocationInWindow(location);
+        int menuHeight = layout.getMeasuredHeight();
+        int menuWidth = layout.getMeasuredWidth();
+        int spaceBelow = AndroidUtilities.displaySize.y - (location[1] + anchor.getHeight());
+        int y;
+        if (menuHeight + AndroidUtilities.dp(16) <= spaceBelow) {
+            y = location[1] + anchor.getHeight() - AndroidUtilities.dp(4);
+        } else if (menuHeight + AndroidUtilities.dp(16) <= location[1]) {
+            y = location[1] - menuHeight + AndroidUtilities.dp(4);
+        } else {
+            y = Math.max(AndroidUtilities.dp(8), (AndroidUtilities.displaySize.y - menuHeight) / 2);
+        }
+        int x = location[0] + anchor.getWidth() - menuWidth - AndroidUtilities.dp(12);
+        if (x < AndroidUtilities.dp(8)) {
+            x = AndroidUtilities.dp(8);
+        }
+        window[0].showAtLocation(fragmentView, android.view.Gravity.TOP | android.view.Gravity.LEFT, x, y);
+    }
+
+    private void convertTextToVoice() {
+        if (ttsBusy || ttsInput == null) {
+            return;
+        }
+        String text = ttsInput.getText().toString();
+        if (text.trim().length() == 0) {
+            showTtsMessage("Type your message first");
+            return;
+        }
+        ttsBusy = true;
+        ttsResultFile = null;
+        updateTtsButtons();
+        startConvertSpin();
+        if (ttsPreview != null) {
+            ttsPreview.setVisibility(View.VISIBLE);
+            ttsPreviewText.setText("Converting");
+        }
+
+        org.telegram.messenger.LyrxTextToVoice.synthesize(text, ttsVoiceIndex, new org.telegram.messenger.LyrxTextToVoice.Callback() {
+            @Override
+            public void onReady(java.io.File file, int duration) {
+                ttsBusy = false;
+                stopConvertSpin();
+                ttsResultFile = file;
+                ttsResultDuration = duration;
+                popButton(ttsDownloadButton);
+                popButton(ttsSendButton);
+                if (ttsPreviewText != null) {
+                    ttsPreviewText.setText("Voice Message  " + formatDuration(duration));
+                }
+                updateTtsButtons();
+            }
+
+            @Override
+            public void onError(String reason) {
+                ttsBusy = false;
+                stopConvertSpin();
+                ttsResultFile = null;
+                if (ttsPreview != null) {
+                    ttsPreview.setVisibility(View.GONE);
+                }
+                updateTtsButtons();
+                showTtsMessage(reason);
+            }
+        });
+    }
+
+    private String formatDuration(int seconds) {
+        int minutes = seconds / 60;
+        int rest = seconds % 60;
+        return String.format(java.util.Locale.US, "%d:%02d", minutes, rest);
+    }
+
+    private void showTtsMessage(String text) {
+        try {
+            BulletinFactory.of(this).createSimpleBulletin(R.raw.chats_infotip, text).show();
+        } catch (Throwable ignore) {
+        }
+    }
+
+    private void saveTtsFile() {
+        if (ttsResultFile == null || !ttsResultFile.exists() || getParentActivity() == null) {
+            return;
+        }
+        try {
+            java.io.File downloads = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS);
+            java.io.File target = new java.io.File(downloads, "LyrxGram-voice-" + System.currentTimeMillis() + ".ogg");
+            AndroidUtilities.copyFile(ttsResultFile, target);
+            AndroidUtilities.addMediaToGallery(target.getAbsolutePath());
+            showTtsMessage("Saved to Downloads");
+        } catch (Throwable e) {
+            FileLog.e(e);
+            showTtsMessage("Could not save the file");
+        }
+    }
+
+    private void sendTtsFile() {
+        if (ttsResultFile == null || !ttsResultFile.exists()) {
+            return;
+        }
+        Bundle args = new Bundle();
+        args.putBoolean("onlySelect", true);
+        args.putInt("dialogsType", 3);
+        DialogsActivity dialogsActivity = new DialogsActivity(args);
+        dialogsActivity.setDelegate((fragment, dids, message, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
+            for (int i = 0; i < dids.size(); i++) {
+                long dialogId = dids.get(i).dialogId;
+                sendVoiceTo(dialogId);
+            }
+            fragment.finishFragment();
+            showTtsMessage("Voice message sent");
+            return true;
+        });
+        presentFragment(dialogsActivity);
+    }
+
+    private void sendVoiceTo(long dialogId) {
+        try {
+            TLRPC.TL_document document = new TLRPC.TL_document();
+            document.file_reference = new byte[0];
+            document.dc_id = Integer.MIN_VALUE;
+            document.id = 0;
+            document.access_hash = 0;
+            document.date = ConnectionsManager.getInstance(currentAccount).getCurrentTime();
+            document.mime_type = "audio/ogg";
+            document.size = ttsResultFile.length();
+
+            TLRPC.TL_documentAttributeAudio audio = new TLRPC.TL_documentAttributeAudio();
+            audio.voice = true;
+            audio.duration = ttsResultDuration;
+            byte[] waveform = MediaController.getWaveform(ttsResultFile.getAbsolutePath());
+            if (waveform != null) {
+                audio.waveform = waveform;
+                audio.flags |= 4;
+            }
+            document.attributes.add(audio);
+
+            SendMessagesHelper.SendMessageParams params =
+                    SendMessagesHelper.SendMessageParams.of(document, null, ttsResultFile.getAbsolutePath(),
+                            dialogId, null, null, null, null, null, null, true, 0, 0, 0, null, null, false);
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(params);
+        } catch (Throwable e) {
+            FileLog.e(e);
+            showTtsMessage("Could not send the voice message");
+        }
     }
 
     private static class UpDownArrows extends android.graphics.drawable.Drawable {
