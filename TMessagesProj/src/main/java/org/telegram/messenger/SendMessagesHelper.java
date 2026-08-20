@@ -4191,6 +4191,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
         String message = sendMessageParams.message;
         String caption = sendMessageParams.caption;
         TLRPC.MessageMedia location = sendMessageParams.location;
+        if (location != null && location.geo != null && LocationController.lyrxSpoofing()) {
+            android.location.Location lyrxFake = LocationController.lyrxFakeLocation();
+            location.geo.lat = AndroidUtilities.fixLocationCoord(lyrxFake.getLatitude());
+            location.geo._long = AndroidUtilities.fixLocationCoord(lyrxFake.getLongitude());
+            location.geo.accuracy_radius = (int) lyrxFake.getAccuracy();
+        }
         TLRPC.TL_photo photo = sendMessageParams.photo;
         VideoEditedInfo videoEditedInfo = sendMessageParams.videoEditedInfo;
         TLRPC.User user = sendMessageParams.user;
@@ -9592,6 +9598,12 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
             return new TLRPC.TL_inputGeoPointEmpty();
         }
         TLRPC.TL_inputGeoPoint input = new TLRPC.TL_inputGeoPoint();
+        if (LocationController.lyrxSpoofing()) {
+            android.location.Location lyrxFake = LocationController.lyrxFakeLocation();
+            input.lat = AndroidUtilities.fixLocationCoord(lyrxFake.getLatitude());
+            input._long = AndroidUtilities.fixLocationCoord(lyrxFake.getLongitude());
+            return input;
+        }
         input.lat = geo.lat;
         input._long = geo._long;
         if (geo.accuracy_radius != 0) {

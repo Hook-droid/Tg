@@ -15,20 +15,12 @@ public class LyrxUpdater {
     private static final String CHANNEL = "selamkerizadam";
     private static final String PREF_KEY = "lyrxSeenApkVersion";
 
-    private static int installedVersion() {
-        try {
-            android.content.pm.PackageInfo info = ApplicationLoader.applicationContext
-                    .getPackageManager().getPackageInfo(ApplicationLoader.applicationContext.getPackageName(), 0);
-            return (int) (Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode);
-        } catch (Throwable e) {
-            return 0;
-        }
+    private static int baseline() {
+        return MessagesController.getGlobalMainSettings().getInt(PREF_KEY, 0);
     }
 
-    private static int baseline() {
-        int seen = MessagesController.getGlobalMainSettings().getInt(PREF_KEY, 0);
-        int installed = installedVersion();
-        return Math.max(seen, installed);
+    private static boolean firstRun() {
+        return !MessagesController.getGlobalMainSettings().contains(PREF_KEY);
     }
 
     public static void markSeen(int version) {
@@ -137,7 +129,14 @@ public class LyrxUpdater {
                     }
                 }
 
-                if (bestVersion > baseline() && bestDocument != null) {
+                if (bestDocument == null) {
+                    return;
+                }
+                if (firstRun()) {
+                    markSeen(bestVersion);
+                    return;
+                }
+                if (bestVersion > baseline()) {
                     latestVersion = bestVersion;
                     latestDocument = bestDocument;
                     latestFileName = bestName;
