@@ -31,6 +31,32 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Imza scripti olustur
+        run: |
+          cat > sign_setup.py << 'SIGNEOF'
+          import re
+          p = "TMessagesProj/build.gradle"
+          s = open(p, encoding="utf-8").read()
+          if "signingConfigs" not in s:
+              block = (
+                  "    signingConfigs {\n"
+                  "        lyrxrelease {\n"
+                  "            storeFile file(\"lyrox-release.keystore\")\n"
+                  "            storePassword System.getenv(\"KEYSTORE_PASSWORD\")\n"
+                  "            keyAlias System.getenv(\"KEY_ALIAS\")\n"
+                  "            keyPassword System.getenv(\"KEY_PASSWORD\")\n"
+                  "        }\n"
+                  "    }\n"
+              )
+              s = s.replace("    buildTypes {", block + "    buildTypes {", 1)
+          s = s.replace(
+              "        release {\n            jniDebuggable false",
+              "        release {\n            signingConfig signingConfigs.lyrxrelease\n            jniDebuggable false",
+              1)
+          open(p, "w", encoding="utf-8").write(s)
+          print("imza yapilandirmasi eklendi")
+          SIGNEOF
+
       - name: JDK 17 kur
         uses: actions/setup-java@v4
         with:
@@ -151,11 +177,23 @@ jobs:
           echo "org.gradle.parallel=false" >> gradle.properties
           echo "org.gradle.workers.max=1" >> gradle.properties
 
+      - name: Release imza ayarla
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > TMessagesProj/lyrox-release.keystore
+          python3 sign_setup.py
+          grep -n "signingConfig" TMessagesProj/build.gradle
+
       - name: gradlew calistirilabilir yap
         run: chmod +x gradlew
 
       - name: APK derle
-        run: ./gradlew assembleDebug --stacktrace --no-daemon --max-workers=1
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --stacktrace --no-daemon --max-workers=1
 
       - name: APK bul
         id: apk
