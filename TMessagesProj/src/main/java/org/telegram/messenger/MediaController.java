@@ -141,6 +141,96 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
 
     private native void stopRecord();
 
+    public boolean lyrxWavToOpus(String wavPath, String outPath) {
+        java.io.FileInputStream input = null;
+        try {
+            java.io.File wav = new java.io.File(wavPath);
+            if (!wav.exists() || wav.length() < 44) {
+                return false;
+            }
+            byte[] header = new byte[44];
+            input = new java.io.FileInputStream(wav);
+            if (input.read(header) != 44) {
+                return false;
+            }
+            int sourceRate = ((header[27] & 0xff) << 24) | ((header[26] & 0xff) << 16)
+                    | ((header[25] & 0xff) << 8) | (header[24] & 0xff);
+            if (sourceRate <= 0) {
+                sourceRate = 22050;
+            }
+            int channels = ((header[23] & 0xff) << 8) | (header[22] & 0xff);
+            if (channels < 1) {
+                channels = 1;
+            }
+
+            java.io.ByteArrayOutputStream raw = new java.io.ByteArrayOutputStream();
+            byte[] chunk = new byte[8192];
+            int read;
+            while ((read = input.read(chunk)) > 0) {
+                raw.write(chunk, 0, read);
+            }
+            input.close();
+            input = null;
+
+            byte[] data = raw.toByteArray();
+            int sourceCount = data.length / 2 / channels;
+            if (sourceCount <= 0) {
+                return false;
+            }
+            short[] source = new short[sourceCount];
+            for (int i = 0; i < sourceCount; i++) {
+                int index = i * channels * 2;
+                source[i] = (short) (((data[index + 1] & 0xff) << 8) | (data[index] & 0xff));
+            }
+
+            int targetRate = 48000;
+            int targetCount = (int) ((long) sourceCount * targetRate / sourceRate);
+            short[] target = new short[targetCount];
+            for (int i = 0; i < targetCount; i++) {
+                float position = (float) i * sourceRate / targetRate;
+                int index = (int) position;
+                float fraction = position - index;
+                short a = source[Math.min(index, sourceCount - 1)];
+                short b = source[Math.min(index + 1, sourceCount - 1)];
+                target[i] = (short) (a + (b - a) * fraction);
+            }
+
+            java.io.File out = new java.io.File(outPath);
+            if (out.exists()) {
+                out.delete();
+            }
+            if (startRecord(outPath, targetRate) == 0) {
+                return false;
+            }
+
+            int frameSize = 1920;
+            java.nio.ByteBuffer buffer = java.nio.ByteBuffer.allocateDirect(frameSize * 2);
+            buffer.order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            int offset = 0;
+            while (offset < targetCount) {
+                int size = Math.min(frameSize, targetCount - offset);
+                buffer.rewind();
+                for (int i = 0; i < size; i++) {
+                    buffer.putShort(target[offset + i]);
+                }
+                writeFrame(buffer, size * 2);
+                offset += size;
+            }
+            stopRecord();
+            return out.exists() && out.length() > 0;
+        } catch (Throwable e) {
+            FileLog.e(e);
+            return false;
+        } finally {
+            try {
+                if (input != null) {
+                    input.close();
+                }
+            } catch (Exception ignore) {
+            }
+        }
+    }
+
     public static native boolean cropOpusFile(String source, String destination, long startMs, long endMs);
 
     public static native boolean joinOpusFiles(String file1, String file2, String dest);
