@@ -54,7 +54,29 @@ jobs:
               "        release {\n            signingConfig signingConfigs.lyrxrelease\n            jniDebuggable false",
               1)
           open(p, "w", encoding="utf-8").write(s)
-          print("imza yapilandirmasi eklendi")
+          print("TMessagesProj imza eklendi")
+
+          sp = "TMessagesProj_AppStandalone/build.gradle"
+          ss = open(sp, encoding="utf-8").read()
+          if "signingConfigs" not in ss:
+              sblock = (
+                  "    signingConfigs {\n"
+                  "        lyrxrelease {\n"
+                  "            storeFile file(\"../TMessagesProj/lyrox-release.keystore\")\n"
+                  "            storePassword System.getenv(\"KEYSTORE_PASSWORD\")\n"
+                  "            keyAlias System.getenv(\"KEY_ALIAS\")\n"
+                  "            keyPassword System.getenv(\"KEY_PASSWORD\")\n"
+                  "        }\n"
+                  "    }\n"
+              )
+              ss = ss.replace("    buildTypes {", sblock + "    buildTypes {", 1)
+          if "signingConfig signingConfigs.lyrxrelease" not in ss:
+              ss = ss.replace(
+                  "        standalone {",
+                  "        standalone {\n            signingConfig signingConfigs.lyrxrelease",
+                  1)
+          open(sp, "w", encoding="utf-8").write(ss)
+          print("Standalone imza eklendi")
           SIGNEOF
 
       - name: JDK 17 kur
@@ -223,7 +245,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --stacktrace --no-daemon --max-workers=1
+        run: ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone --stacktrace --no-daemon --max-workers=1
 
       - name: APK bul
         id: apk
