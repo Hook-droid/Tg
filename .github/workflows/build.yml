@@ -65,14 +65,20 @@ jobs:
               "            storePassword System.getenv(\"KEYSTORE_PASSWORD\")\n"
               "            keyAlias System.getenv(\"KEY_ALIAS\")\n"
               "            keyPassword System.getenv(\"KEY_PASSWORD\")\n"
+              "        }\n"
           )
           if "lyrxrelease {" not in ss:
               ss = ss.replace("    signingConfigs {\n", lyrxblock, 1)
           if "signingConfig signingConfigs.lyrxrelease" not in ss:
               ss = ss.replace(
-                  "        standalone {",
-                  "        standalone {\n            signingConfig signingConfigs.lyrxrelease",
+                  "        standalone {\n",
+                  "        standalone {\n            signingConfig signingConfigs.lyrxrelease\n",
                   1)
+          import re as _re
+          _open = ss.count("{")
+          _close = ss.count("}")
+          if _open != _close:
+              raise SystemExit("HATA: brace dengesi bozuk %d/%d" % (_open, _close))
           open(sp, "w", encoding="utf-8").write(ss)
           print("Standalone imza eklendi")
           SIGNEOF
