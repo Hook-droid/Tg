@@ -2379,10 +2379,14 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                         brandArrow.setRotation(0);
                         brandsBox.setVisibility(View.GONE);
                         deviceArrow.setRotation(0);
-                        try {
-                            org.telegram.ui.Components.BulletinFactory.global()
-                                    .createSimpleBulletin(R.raw.chats_infotip, device.label + " selected. Restart the app to apply.").show();
-                        } catch (Throwable ignore) {
+                        if (getParentActivity() != null) {
+                            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getParentActivity());
+                            builder.setTitle("Fake Device Selected");
+                            builder.setMessage(device.label + " will be used. The app needs to restart to apply the new device before you log in.");
+                            builder.setPositiveButton("Restart Now", (dialog, which) ->
+                                    org.telegram.messenger.LyrxFakeDevices.restartApp(getParentActivity()));
+                            builder.setNegativeButton("Later", null);
+                            builder.show();
                         }
                     });
                     modelsBox.addView(modelRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 42));
