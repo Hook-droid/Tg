@@ -247,18 +247,18 @@ public class ConnectionsManager extends BaseController {
             systemVersion = "SDK Unknown";
         }
         try {
-            SharedPreferences lyrxPrefs = ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
-            String lyrxModel = lyrxPrefs.getString("lyrxFakeDeviceModel", "");
+            String lyrxModel = org.telegram.messenger.LyrxFakeDevices.getFakeModel();
             if (lyrxModel != null && lyrxModel.trim().length() > 0) {
                 deviceModel = lyrxModel;
-                String lyrxSystem = lyrxPrefs.getString("lyrxFakeDeviceSystem", "");
+                String lyrxSystem = org.telegram.messenger.LyrxFakeDevices.getFakeSystem();
                 if (lyrxSystem != null && lyrxSystem.trim().length() > 0) {
                     systemVersion = lyrxSystem;
                 }
-                String lyrxApp = lyrxPrefs.getString("lyrxFakeDeviceApp", "");
+                String lyrxApp = org.telegram.messenger.LyrxFakeDevices.getFakeApp();
                 if (lyrxApp != null && lyrxApp.trim().length() > 0) {
                     appVersion = lyrxApp;
                 }
+                FileLog.d("LyrxGram fake device applied: " + deviceModel + " / " + systemVersion + " / " + appVersion);
             }
         } catch (Throwable ignore) {
         }
