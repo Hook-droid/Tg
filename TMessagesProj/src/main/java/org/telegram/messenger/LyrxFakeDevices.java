@@ -129,6 +129,53 @@ public class LyrxFakeDevices {
                 .putString("lyrxFakeDeviceModel", SharedConfig.lyrxFakeDeviceModel)
                 .putString("lyrxFakeDeviceSystem", SharedConfig.lyrxFakeDeviceSystem)
                 .putString("lyrxFakeDeviceApp", SharedConfig.lyrxFakeDeviceApp)
-                .apply();
+                .commit();
+    }
+
+    public static String getFakeModel() {
+        try {
+            android.content.SharedPreferences p = ApplicationLoader.applicationContext
+                    .getSharedPreferences("mainconfig", android.content.Context.MODE_PRIVATE);
+            return p.getString("lyrxFakeDeviceModel", "");
+        } catch (Throwable e) {
+            return "";
+        }
+    }
+
+    public static String getFakeSystem() {
+        try {
+            android.content.SharedPreferences p = ApplicationLoader.applicationContext
+                    .getSharedPreferences("mainconfig", android.content.Context.MODE_PRIVATE);
+            return p.getString("lyrxFakeDeviceSystem", "");
+        } catch (Throwable e) {
+            return "";
+        }
+    }
+
+    public static String getFakeApp() {
+        try {
+            android.content.SharedPreferences p = ApplicationLoader.applicationContext
+                    .getSharedPreferences("mainconfig", android.content.Context.MODE_PRIVATE);
+            return p.getString("lyrxFakeDeviceApp", "");
+        } catch (Throwable e) {
+            return "";
+        }
+    }
+
+    public static void restartApp(android.app.Activity activity) {
+        try {
+            if (activity == null) {
+                return;
+            }
+            android.content.pm.PackageManager pm = activity.getPackageManager();
+            android.content.Intent intent = pm.getLaunchIntentForPackage(activity.getPackageName());
+            if (intent != null) {
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+            activity.finishAffinity();
+            activity.startActivity(intent);
+        } catch (Throwable ignore) {
+        }
+        System.exit(0);
     }
 }
