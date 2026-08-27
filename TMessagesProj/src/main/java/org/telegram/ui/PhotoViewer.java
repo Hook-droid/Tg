@@ -936,6 +936,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     private ImageView mirrorItem;
     private ImageView rotateItem;
     private ImageView tuneItem;
+    private ImageView lyrxRoundItem;
+    private FrameLayout lyrxRoundPanel;
+    private boolean lyrxRoundSelected;
     private MuteDrawable muteDrawable;
     private ImageView muteButton;
     private LivePhotoButton livePhotoButton;
@@ -7673,6 +7676,17 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         });
         tuneItem.setContentDescription(getString("AccDescrPhotoAdjust", R.string.AccDescrPhotoAdjust));
 
+        lyrxRoundItem = new ImageView(parentActivity);
+        lyrxRoundItem.setScaleType(ImageView.ScaleType.CENTER);
+        lyrxRoundItem.setImageResource(R.drawable.lyrx_ic_roundvideo);
+        lyrxRoundItem.setBackground(Theme.createInsetRoundRectDrawable(0x10FFFFFF, dp(22), dp(4), dp(6)));
+        itemsLayout.addView(lyrxRoundItem, LayoutHelper.createLinear(48, 48));
+        lyrxRoundItem.setOnClickListener(v -> {
+            if (v.getAlpha() < .9f) return;
+            showLyrxRoundPanel();
+        });
+        lyrxRoundItem.setContentDescription("Round video");
+
         editorDoneLayout = new PickerBottomLayoutViewer(activityContext);
         editorDoneLayout.setBackgroundColor(0xcc000000);
         editorDoneLayout.updateSelectedCount(0, false);
@@ -9860,7 +9874,183 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             videoEditedInfo.originalBitrate = originalBitrate;
         }
         videoEditedInfo.muted = muteVideo || sendPhotoType == SELECT_TYPE_AVATAR;
+        if (lyrxRoundSelected) {
+            videoEditedInfo.roundVideo = true;
+            int side = Math.min(videoEditedInfo.resultWidth, videoEditedInfo.resultHeight);
+            if (side <= 0) {
+                side = 384;
+            }
+            if (side > 640) {
+                side = 640;
+            }
+            if (side % 16 != 0) {
+                side = Math.max(16, Math.round(side / 16.0f) * 16);
+            }
+            videoEditedInfo.resultWidth = side;
+            videoEditedInfo.resultHeight = side;
+            videoEditedInfo.roundVideo = true;
+        }
         return videoEditedInfo;
+    }
+
+    private void showLyrxRoundPanel() {
+        if (parentActivity == null || containerView == null) {
+            return;
+        }
+        if (lyrxRoundPanel != null && lyrxRoundPanel.getParent() != null) {
+            return;
+        }
+
+        final int accent = 0xFFFFC83D;
+
+        FrameLayout dim = new FrameLayout(parentActivity);
+        dim.setBackgroundColor(0x99000000);
+        dim.setOnClickListener(v -> hideLyrxRoundPanel());
+        lyrxRoundPanel = dim;
+
+        LinearLayout sheet = new LinearLayout(parentActivity);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable sheetBg = new android.graphics.drawable.GradientDrawable();
+        sheetBg.setColor(0xFF1C1C1E);
+        sheetBg.setCornerRadii(new float[]{dp(22), dp(22), dp(22), dp(22), 0, 0, 0, 0});
+        sheet.setBackground(sheetBg);
+        sheet.setPadding(dp(18), dp(16), dp(18), dp(16));
+        sheet.setOnClickListener(v -> {});
+
+        TextView title = new TextView(parentActivity);
+        title.setText("Send As");
+        title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setGravity(Gravity.CENTER);
+        sheet.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 16));
+
+        LinearLayout previews = new LinearLayout(parentActivity);
+        previews.setOrientation(LinearLayout.HORIZONTAL);
+        previews.setGravity(Gravity.CENTER);
+
+        final boolean[] chosenRound = {lyrxRoundSelected};
+
+        FrameLayout normalCard = lyrxBuildPreviewCard(parentActivity, false, !chosenRound[0], accent);
+        FrameLayout roundCard = lyrxBuildPreviewCard(parentActivity, true, chosenRound[0], accent);
+
+        normalCard.setOnClickListener(v -> {
+            chosenRound[0] = false;
+            lyrxStylePreviewCard(normalCard, true, accent);
+            lyrxStylePreviewCard(roundCard, false, accent);
+        });
+        roundCard.setOnClickListener(v -> {
+            chosenRound[0] = true;
+            lyrxStylePreviewCard(normalCard, false, accent);
+            lyrxStylePreviewCard(roundCard, true, accent);
+        });
+
+        previews.addView(normalCard, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 6, 0, 6, 0));
+        previews.addView(roundCard, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 6, 0, 6, 0));
+        sheet.addView(previews, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 18));
+
+        TextView brand = new TextView(parentActivity);
+        brand.setText("LyrxGram Modified");
+        brand.setTextColor(accent);
+        brand.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        brand.setTypeface(AndroidUtilities.bold());
+        brand.setGravity(Gravity.CENTER);
+
+        FrameLayout bottomRow = new FrameLayout(parentActivity);
+
+        TextView cancel = new TextView(parentActivity);
+        cancel.setText("Cancel");
+        cancel.setTextColor(0xFFFF3B30);
+        cancel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        cancel.setTypeface(AndroidUtilities.bold());
+        cancel.setPadding(dp(10), dp(8), dp(10), dp(8));
+        cancel.setOnClickListener(v -> hideLyrxRoundPanel());
+        bottomRow.addView(cancel, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL));
+
+        bottomRow.addView(brand, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        TextView finished = new TextView(parentActivity);
+        finished.setText("Finished");
+        finished.setTextColor(0xFF3390EC);
+        finished.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        finished.setTypeface(AndroidUtilities.bold());
+        finished.setPadding(dp(10), dp(8), dp(10), dp(8));
+        finished.setOnClickListener(v -> {
+            lyrxRoundSelected = chosenRound[0];
+            lyrxRoundItem.setColorFilter(lyrxRoundSelected ? new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN) : null);
+            hideLyrxRoundPanel();
+        });
+        bottomRow.addView(finished, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+
+        sheet.addView(bottomRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 4, 0, 0));
+
+        dim.addView(sheet, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+        containerView.addView(dim, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        sheet.setTranslationY(dp(260));
+        sheet.animate().translationY(0).setDuration(240).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    }
+
+    private FrameLayout lyrxBuildPreviewCard(Context context, boolean round, boolean selected, int accent) {
+        FrameLayout card = new FrameLayout(context);
+
+        View thumb = new View(context);
+        android.graphics.drawable.GradientDrawable thumbBg = new android.graphics.drawable.GradientDrawable();
+        thumbBg.setColor(0xFF3A3A3C);
+        if (round) {
+            thumbBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        } else {
+            thumbBg.setCornerRadius(dp(10));
+        }
+        thumb.setBackground(thumbBg);
+
+        ImageView play = new ImageView(context);
+        play.setImageResource(R.drawable.play_mini_video);
+        play.setColorFilter(0xFFFFFFFF);
+
+        FrameLayout thumbWrap = new FrameLayout(context);
+        thumbWrap.addView(thumb, LayoutHelper.createFrame(round ? 110 : 120, round ? 110 : 150, Gravity.CENTER));
+        thumbWrap.addView(play, LayoutHelper.createFrame(30, 30, Gravity.CENTER));
+        card.addView(thumbWrap, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 160, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
+
+        TextView label = new TextView(context);
+        label.setText(round ? "Bubble" : "Standard");
+        label.setTextColor(0xFFFFFFFF);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        label.setTypeface(AndroidUtilities.bold());
+        label.setGravity(Gravity.CENTER);
+        card.addView(label, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM));
+
+        card.setTag(new Object[]{round, label});
+        lyrxStylePreviewCard(card, selected, accent);
+        return card;
+    }
+
+    private void lyrxStylePreviewCard(FrameLayout card, boolean selected, int accent) {
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setColor(selected ? 0x22FFC83D : 0x14FFFFFF);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(selected ? 2 : 1), selected ? accent : 0x22FFFFFF);
+        card.setBackground(bg);
+        card.setPadding(dp(8), dp(12), dp(8), dp(10));
+    }
+
+    private void hideLyrxRoundPanel() {
+        if (lyrxRoundPanel == null) {
+            return;
+        }
+        final FrameLayout panel = lyrxRoundPanel;
+        lyrxRoundPanel = null;
+        View sheet = panel.getChildCount() > 0 ? panel.getChildAt(0) : null;
+        if (sheet != null) {
+            sheet.animate().translationY(dp(260)).setDuration(200).withEndAction(() -> {
+                if (panel.getParent() instanceof android.view.ViewGroup) {
+                    ((android.view.ViewGroup) panel.getParent()).removeView(panel);
+                }
+            }).start();
+        } else if (panel.getParent() instanceof android.view.ViewGroup) {
+            ((android.view.ViewGroup) panel.getParent()).removeView(panel);
+        }
     }
 
     private boolean supportsSendingNewEntities() {
@@ -14014,6 +14204,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         paintItem.setTag(null);
         cropItem.setVisibility(View.GONE);
         tuneItem.setVisibility(View.GONE);
+        if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.GONE);
         tuneItem.setTag(null);
         captionEdit.setTimerVisible(false, false);
         captionEdit.setShowMoveButtonVisible(false, false);
@@ -15031,6 +15222,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                             paintItem.setTag(1);
                             tuneItem.setVisibility(View.VISIBLE);
                             tuneItem.setTag(1);
+                            if (lyrxRoundItem != null) {
+                                lyrxRoundItem.setVisibility(isCurrentVideo && sendPhotoType != SELECT_TYPE_AVATAR ? View.VISIBLE : View.GONE);
+                            }
                         }
                         cropItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.VISIBLE : View.GONE);
                         rotateItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.GONE : View.VISIBLE);
