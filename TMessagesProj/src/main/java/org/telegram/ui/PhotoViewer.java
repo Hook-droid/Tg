@@ -14543,12 +14543,15 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             if (sendPhotoType == SELECT_TYPE_AVATAR) {
                 paintItem.setVisibility(View.VISIBLE);
                 tuneItem.setVisibility(View.VISIBLE);
+                if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.VISIBLE);
             } else if (sendPhotoType != 4 && sendPhotoType != 5) {
                 paintItem.setVisibility(paintItem.getTag() != null ? View.VISIBLE : View.GONE);
                 tuneItem.setVisibility(tuneItem.getTag() != null ? View.VISIBLE : View.GONE);
+                if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(tuneItem.getTag() != null ? View.VISIBLE : View.GONE);
             } else {
                 paintItem.setVisibility(View.GONE);
                 tuneItem.setVisibility(View.GONE);
+                if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.GONE);
             }
             updateSelectedCount();
         } else {
@@ -15125,6 +15128,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                             cropItem.setVisibility(View.GONE);
                             cropItem.setTag(null);
                             tuneItem.setVisibility(View.GONE);
+                            if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.GONE);
                             tuneItem.setTag(null);
                             paintItem.setVisibility(View.GONE);
                             paintItem.setTag(null);
@@ -15172,6 +15176,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                                 compressItem.setVisibility(View.GONE);
                             }
                             tuneItem.setVisibility(View.VISIBLE);
+                            if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.VISIBLE);
                             tuneItem.setTag(1);
                             paintItem.setVisibility(View.VISIBLE);
                             paintItem.setTag(1);
@@ -15210,21 +15215,21 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         rotateItem.setVisibility(View.GONE);
                         mirrorItem.setVisibility(View.GONE);
                         tuneItem.setVisibility(View.GONE);
+                        if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.GONE);
                         tuneItem.setTag(null);
                     } else {
                         if (sendPhotoType == 4 || sendPhotoType == 5) {
                             paintItem.setVisibility(View.GONE);
                             paintItem.setTag(null);
                             tuneItem.setVisibility(View.GONE);
+                            if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.GONE);
                             tuneItem.setTag(null);
                         } else {
                             paintItem.setVisibility(View.VISIBLE);
                             paintItem.setTag(1);
                             tuneItem.setVisibility(View.VISIBLE);
+                            if (lyrxRoundItem != null) lyrxRoundItem.setVisibility(View.VISIBLE);
                             tuneItem.setTag(1);
-                            if (lyrxRoundItem != null) {
-                                lyrxRoundItem.setVisibility(isCurrentVideo && sendPhotoType != SELECT_TYPE_AVATAR ? View.VISIBLE : View.GONE);
-                            }
                         }
                         cropItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.VISIBLE : View.GONE);
                         rotateItem.setVisibility(sendPhotoType != SELECT_TYPE_AVATAR ? View.GONE : View.VISIBLE);
