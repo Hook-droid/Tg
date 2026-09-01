@@ -11073,6 +11073,10 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
                                     attributeVideo = new TLRPC.TL_documentAttributeVideo();
                                     attributeVideo.supports_streaming = true;
                                 }
+                                if (videoEditedInfo != null && videoEditedInfo.roundVideo) {
+                                    attributeVideo.round_message = true;
+                                    document.mime_type = "video/mp4";
+                                }
                                 document.attributes.add(attributeVideo);
                                 if (videoEditedInfo != null && (videoEditedInfo.needConvert() || !info.isVideo)) {
                                     if (info.isVideo && videoEditedInfo.muted) {
