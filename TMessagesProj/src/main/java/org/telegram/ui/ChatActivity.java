@@ -54,6 +54,7 @@ import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.AudioManager;
 import android.net.Uri;
@@ -1241,6 +1242,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_SUGGESTION_ADD_OFFER = 114;
 
     public final static int OPTION_VIEW_STATISTICS = 115;
+    public final static int OPTION_LYRX_FAKE_SIZE = 4200;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -33079,6 +33081,296 @@ public class ChatActivity extends BaseFragment implements
         return null;
     }
 
+    private void lyrxShowFakeSizeSheet(MessageObject messageObject) {
+        if (getParentActivity() == null || messageObject == null || messageObject.getDocument() == null) {
+            return;
+        }
+        final Context context = getParentActivity();
+        final TLRPC.Document document = messageObject.getDocument();
+        final int accent = 0xFFFFC83D;
+        final long KB = 1024L, MB = KB * 1024L, GB = MB * 1024L, TB = GB * 1024L;
+        final String[] units = {"MB", "GB", "TB"};
+        final long[] unitBytes = {MB, GB, TB};
+
+        long current = document.size > 0 ? document.size : 5L * GB;
+        int startUnit = 1;
+        double startAmount = current / (double) GB;
+        if (current < GB) {
+            startUnit = 0;
+            startAmount = current / (double) MB;
+        } else if (current >= TB) {
+            startUnit = 2;
+            startAmount = current / (double) TB;
+        }
+        final int[] unitIndex = {startUnit};
+        final double[] amount = {Math.max(1, Math.round(startAmount * 10) / 10.0)};
+
+        FrameLayout overlay = new FrameLayout(context);
+        overlay.setBackgroundColor(0xB0000000);
+
+        LinearLayout sheet = new LinearLayout(context);
+        sheet.setOrientation(LinearLayout.VERTICAL);
+        GradientDrawable sheetBg = new GradientDrawable();
+        sheetBg.setColor(0xFF1C1C1E);
+        sheetBg.setCornerRadii(new float[]{dp(24), dp(24), dp(24), dp(24), 0, 0, 0, 0});
+        sheet.setBackground(sheetBg);
+        sheet.setPadding(dp(22), dp(20), dp(22), dp(18));
+
+        TextView title = new TextView(context);
+        title.setText("Fake Size");
+        title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 19);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setGravity(Gravity.CENTER);
+        sheet.addView(title, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 4));
+
+        TextView subtitle = new TextView(context);
+        subtitle.setText(document.file_name_fixed != null ? document.file_name_fixed : FileLoader.getDocumentFileName(document));
+        subtitle.setTextColor(0xFF8E8E93);
+        subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        subtitle.setGravity(Gravity.CENTER);
+        subtitle.setSingleLine(true);
+        subtitle.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
+        sheet.addView(subtitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 24));
+
+        LinearLayout inputRow = new LinearLayout(context);
+        inputRow.setOrientation(LinearLayout.HORIZONTAL);
+        inputRow.setGravity(Gravity.CENTER);
+
+        GradientDrawable inputBg = new GradientDrawable();
+        inputBg.setColor(0xFF2C2C2E);
+        inputBg.setCornerRadius(dp(14));
+        inputBg.setStroke(dp(1), 0x33FFC83D);
+
+        EditText amountInput = new EditText(context);
+        amountInput.setText(amount[0] == Math.floor(amount[0]) ? String.valueOf((long) amount[0]) : String.valueOf(amount[0]));
+        amountInput.setTextColor(accent);
+        amountInput.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 28);
+        amountInput.setTypeface(AndroidUtilities.bold());
+        amountInput.setGravity(Gravity.CENTER);
+        amountInput.setBackground(inputBg);
+        amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        amountInput.setSelectAllOnFocus(true);
+        amountInput.setPadding(dp(12), dp(10), dp(12), dp(10));
+        inputRow.addView(amountInput, LayoutHelper.createLinear(120, LayoutHelper.WRAP_CONTENT, 0, 0, 10, 0));
+
+        FrameLayout unitButton = new FrameLayout(context);
+        GradientDrawable unitBg = new GradientDrawable();
+        unitBg.setColor(0x33FFC83D);
+        unitBg.setCornerRadius(dp(14));
+        unitButton.setBackground(unitBg);
+        unitButton.setPadding(dp(18), dp(10), dp(14), dp(10));
+
+        TextView unitLabel = new TextView(context);
+        unitLabel.setText(units[unitIndex[0]]);
+        unitLabel.setTextColor(accent);
+        unitLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        unitLabel.setTypeface(AndroidUtilities.bold());
+        unitButton.addView(unitLabel, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.LEFT));
+
+        ImageView unitArrow = new ImageView(context);
+        unitArrow.setImageResource(R.drawable.arrow_more);
+        unitArrow.setColorFilter(accent);
+        unitButton.addView(unitArrow, LayoutHelper.createFrame(16, 16, Gravity.CENTER_VERTICAL | Gravity.RIGHT));
+
+        inputRow.addView(unitButton, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
+        sheet.addView(inputRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 0, 6));
+
+        TextView previewLabel = new TextView(context);
+        previewLabel.setTextColor(0xFF8E8E93);
+        previewLabel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        previewLabel.setGravity(Gravity.CENTER);
+        sheet.addView(previewLabel, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 6, 0, 22));
+
+        final Runnable[] refreshPreview = new Runnable[1];
+        refreshPreview[0] = () -> {
+            long bytes = (long) (amount[0] * unitBytes[unitIndex[0]]);
+            previewLabel.setText("Everyone will see: " + amount[0] + " " + units[unitIndex[0]]
+                    + "  (" + AndroidUtilities.formatFileSize(bytes) + ")");
+        };
+        refreshPreview[0].run();
+
+        amountInput.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(android.text.Editable s) {
+                try {
+                    double value = Double.parseDouble(s.toString().trim().replace(",", "."));
+                    if (value < 0) value = 0;
+                    if (value > 999999) value = 999999;
+                    amount[0] = value;
+                } catch (Exception ignore) {
+                    amount[0] = 0;
+                }
+                refreshPreview[0].run();
+            }
+        });
+
+        final LinearLayout[] unitReel = new LinearLayout[1];
+        final Runnable[] closeReel = new Runnable[1];
+        closeReel[0] = () -> {
+            if (unitReel[0] != null && unitReel[0].getParent() instanceof ViewGroup) {
+                LinearLayout reel = unitReel[0];
+                unitReel[0] = null;
+                reel.animate().alpha(0f).scaleY(0.85f).setDuration(140).withEndAction(() -> {
+                    if (reel.getParent() instanceof ViewGroup) {
+                        ((ViewGroup) reel.getParent()).removeView(reel);
+                    }
+                }).start();
+                unitArrow.animate().rotation(0).setDuration(160).start();
+            }
+        };
+
+        unitButton.setOnClickListener(v -> {
+            if (unitReel[0] != null) {
+                closeReel[0].run();
+                return;
+            }
+
+            LinearLayout reel = new LinearLayout(context);
+            reel.setOrientation(LinearLayout.VERTICAL);
+            GradientDrawable reelBg = new GradientDrawable();
+            reelBg.setColor(0xFF2C2C2E);
+            reelBg.setCornerRadius(dp(14));
+            reelBg.setStroke(dp(1), 0x40FFC83D);
+            reel.setBackground(reelBg);
+            reel.setElevation(dp(8));
+
+            final TextView[] rows = new TextView[units.length];
+            for (int i = 0; i < units.length; i++) {
+                final int idx = i;
+                TextView row = new TextView(context);
+                row.setText(units[i]);
+                row.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
+                row.setGravity(Gravity.CENTER);
+                row.setPadding(dp(26), dp(11), dp(26), dp(11));
+                int blue = Theme.getColor(Theme.key_dialogTextBlue2);
+                row.setTypeface(idx == unitIndex[0] ? AndroidUtilities.bold() : Typeface.DEFAULT);
+                row.setTextColor(idx == unitIndex[0] ? blue : 0xFFFFFFFF);
+                if (idx == unitIndex[0]) {
+                    GradientDrawable rowBg = new GradientDrawable();
+                    rowBg.setColor(0x263390EC);
+                    row.setBackground(rowBg);
+                }
+                rows[i] = row;
+                row.setOnClickListener(rv -> {
+                    unitIndex[0] = idx;
+                    unitLabel.setText(units[idx]);
+                    refreshPreview[0].run();
+                    closeReel[0].run();
+                });
+                reel.addView(row, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+                if (i < units.length - 1) {
+                    View div = new View(context);
+                    div.setBackgroundColor(0x1AFFFFFF);
+                    reel.addView(div, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 1));
+                }
+            }
+
+            overlay.addView(reel, LayoutHelper.createFrame(120, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT));
+            unitReel[0] = reel;
+
+            reel.setAlpha(0f);
+            reel.setPivotX(dp(60));
+            reel.setScaleY(0.85f);
+
+            reel.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    reel.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    int[] anchorLoc = new int[2];
+                    unitButton.getLocationInWindow(anchorLoc);
+                    int[] overlayLoc = new int[2];
+                    overlay.getLocationInWindow(overlayLoc);
+                    int relX = anchorLoc[0] - overlayLoc[0];
+                    int relY = anchorLoc[1] - overlayLoc[1];
+                    int reelHeight = reel.getHeight();
+
+                    boolean openUpward = unitIndex[0] == units.length - 1;
+                    float ty;
+                    if (openUpward) {
+                        ty = relY - reelHeight - dp(6);
+                        reel.setPivotY(reelHeight);
+                    } else {
+                        ty = relY + unitButton.getHeight() + dp(6);
+                        reel.setPivotY(0);
+                    }
+                    reel.setTranslationX(relX);
+                    reel.setTranslationY(ty);
+                    reel.animate().alpha(1f).scaleY(1f).setDuration(180)
+                            .setInterpolator(new android.view.animation.OvershootInterpolator(1.6f)).start();
+                }
+            });
+            unitArrow.animate().rotation(180).setDuration(160).start();
+        });
+
+        TextView brand = new TextView(context);
+        brand.setText("LyrxGram Modified");
+        brand.setTextColor(accent);
+        brand.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        brand.setTypeface(AndroidUtilities.bold());
+        brand.setGravity(Gravity.CENTER);
+
+        FrameLayout bottomRow = new FrameLayout(context);
+
+        TextView cancel = new TextView(context);
+        cancel.setText(LocaleController.getString(R.string.Cancel));
+        cancel.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2));
+        cancel.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        cancel.setTypeface(AndroidUtilities.bold());
+        cancel.setPadding(dp(10), dp(8), dp(10), dp(8));
+        bottomRow.addView(cancel, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT | Gravity.CENTER_VERTICAL));
+
+        bottomRow.addView(brand, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+
+        TextView ok = new TextView(context);
+        ok.setText(LocaleController.getString(R.string.OK));
+        ok.setTextColor(Theme.getColor(Theme.key_dialogTextBlue2));
+        ok.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        ok.setTypeface(AndroidUtilities.bold());
+        ok.setPadding(dp(10), dp(8), dp(10), dp(8));
+        bottomRow.addView(ok, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL));
+
+        sheet.addView(bottomRow, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        overlay.addView(sheet, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+
+        final FrameLayout[] overlayRef = {overlay};
+        Runnable dismiss = () -> {
+            if (overlayRef[0] != null && overlayRef[0].getParent() instanceof ViewGroup) {
+                sheet.animate().translationY(dp(300)).setDuration(200).withEndAction(() -> {
+                    ((ViewGroup) overlayRef[0].getParent()).removeView(overlayRef[0]);
+                }).start();
+            }
+        };
+
+        overlay.setOnClickListener(v -> dismiss.run());
+        sheet.setOnClickListener(v -> {});
+        cancel.setOnClickListener(v -> dismiss.run());
+        ok.setOnClickListener(v -> {
+            long newSize = (long) (amount[0] * unitBytes[unitIndex[0]]);
+            if (newSize <= 0) {
+                newSize = document.size;
+            }
+            document.size = newSize;
+            final long finalSize = newSize;
+            AndroidUtilities.runOnUIThread(() -> {
+                MessagesStorage.getInstance(currentAccount).replaceMessageIfExists(messageObject.messageOwner, null, null, false);
+            });
+            chatAdapter.notifyDataSetChanged(false);
+            dismiss.run();
+        });
+
+        contentView.addView(overlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+        sheet.setTranslationY(dp(300));
+        sheet.animate().translationY(0).setDuration(260).setInterpolator(new android.view.animation.DecelerateInterpolator()).start();
+    }
+
     private void startEditingMessageObject(MessageObject messageObject) {
         startEditingMessageObject(messageObject, false);
     }
@@ -33808,6 +34100,12 @@ public class ChatActivity extends BaseFragment implements
                 selectedObject = null;
                 selectedObjectGroup = null;
                 selectedObjectToEditCaption = null;
+                break;
+            }
+            case OPTION_LYRX_FAKE_SIZE: {
+                lyrxShowFakeSizeSheet(selectedObject);
+                selectedObject = null;
+                selectedObjectGroup = null;
                 break;
             }
             case OPTION_EDIT_PRICE: {
@@ -45720,6 +46018,11 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Edit));
                     options.add(OPTION_EDIT);
                     icons.add(R.drawable.msg_edit);
+                }
+                if (selectedObject != null && selectedObject.getDocument() != null && selectedObject.isOutOwner() && !selectedObject.isRoundVideo() && !selectedObject.isVoice()) {
+                    items.add("Fake Size");
+                    options.add(OPTION_LYRX_FAKE_SIZE);
+                    icons.add(R.drawable.lyrx_ic_fakesize);
                 }
                 if (ChatObject.isMonoForum(currentChat) && selectedObject.getGroupId() == 0 && selectedObjectGroup == null && message != null && message.messageOwner != null && message.messageOwner.suggested_post == null && message.messageOwner.action == null) {
                     items.add(LocaleController.getString(R.string.EditOfferAdd));
