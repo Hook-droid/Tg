@@ -140,7 +140,7 @@ import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.LinearSmoothScrollerEnd;
+import org.telegram.ui.recyclerview.LinearSmoothScrollerEnd;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.exoplayer2.C;
@@ -9876,25 +9876,19 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         videoEditedInfo.muted = muteVideo || sendPhotoType == SELECT_TYPE_AVATAR;
         if (lyrxRoundSelected) {
             videoEditedInfo.roundVideo = true;
-            videoEditedInfo.muted = false;
-            int base = Math.min(videoEditedInfo.originalWidth, videoEditedInfo.originalHeight);
-            if (base <= 0) {
-                base = Math.min(videoEditedInfo.resultWidth, videoEditedInfo.resultHeight);
+            int side = Math.min(videoEditedInfo.resultWidth, videoEditedInfo.resultHeight);
+            if (side <= 0) {
+                side = 384;
             }
-            int side = base > 0 ? base : 384;
-            if (side > 512) {
-                side = 512;
+            if (side > 640) {
+                side = 640;
             }
-            side = Math.max(240, side);
             if (side % 16 != 0) {
                 side = Math.max(16, Math.round(side / 16.0f) * 16);
             }
             videoEditedInfo.resultWidth = side;
             videoEditedInfo.resultHeight = side;
-            videoEditedInfo.rotationValue = 0;
-            if (videoEditedInfo.bitrate <= 0) {
-                videoEditedInfo.bitrate = 1000000;
-            }
+            videoEditedInfo.roundVideo = true;
         }
         return videoEditedInfo;
     }
@@ -10000,47 +9994,32 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     private FrameLayout lyrxBuildPreviewCard(Context context, boolean round, boolean selected, int accent) {
         FrameLayout card = new FrameLayout(context);
 
-        LinearLayout column = new LinearLayout(context);
-        column.setOrientation(LinearLayout.VERTICAL);
-        column.setGravity(Gravity.CENTER_HORIZONTAL);
-
-        FrameLayout thumbWrap = new FrameLayout(context);
-
         View thumb = new View(context);
-        android.graphics.drawable.GradientDrawable thumbBg = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                new int[]{0xFF4A4A4E, 0xFF2E2E32});
+        android.graphics.drawable.GradientDrawable thumbBg = new android.graphics.drawable.GradientDrawable();
+        thumbBg.setColor(0xFF3A3A3C);
         if (round) {
             thumbBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
         } else {
-            thumbBg.setCornerRadius(dp(12));
+            thumbBg.setCornerRadius(dp(10));
         }
         thumb.setBackground(thumbBg);
-        thumbWrap.addView(thumb, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-
-        FrameLayout playCircle = new FrameLayout(context);
-        android.graphics.drawable.GradientDrawable playBg = new android.graphics.drawable.GradientDrawable();
-        playBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
-        playBg.setColor(0x66000000);
-        playCircle.setBackground(playBg);
 
         ImageView play = new ImageView(context);
         play.setImageResource(R.drawable.play_mini_video);
         play.setColorFilter(0xFFFFFFFF);
-        playCircle.addView(play, LayoutHelper.createFrame(18, 18, Gravity.CENTER));
 
-        thumbWrap.addView(playCircle, LayoutHelper.createFrame(40, 40, Gravity.CENTER));
-        column.addView(thumbWrap, LayoutHelper.createLinear(120, 120, Gravity.CENTER_HORIZONTAL, 0, round ? 6 : 6, 0, 0));
+        FrameLayout thumbWrap = new FrameLayout(context);
+        thumbWrap.addView(thumb, LayoutHelper.createFrame(round ? 110 : 120, round ? 110 : 150, Gravity.CENTER));
+        thumbWrap.addView(play, LayoutHelper.createFrame(30, 30, Gravity.CENTER));
+        card.addView(thumbWrap, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 160, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
 
         TextView label = new TextView(context);
         label.setText(round ? "Bubble" : "Standard");
-        label.setTextColor(selected ? accent : 0xFFFFFFFF);
+        label.setTextColor(0xFFFFFFFF);
         label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         label.setTypeface(AndroidUtilities.bold());
         label.setGravity(Gravity.CENTER);
-        column.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 12, 0, 2));
-
-        card.addView(column, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER));
+        card.addView(label, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM));
 
         card.setTag(new Object[]{round, label});
         lyrxStylePreviewCard(card, selected, accent);
@@ -10049,17 +10028,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
     private void lyrxStylePreviewCard(FrameLayout card, boolean selected, int accent) {
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
-        bg.setColor(selected ? 0x1FFFC83D : 0x0DFFFFFF);
-        bg.setCornerRadius(dp(18));
-        bg.setStroke(dp(selected ? 2 : 1), selected ? accent : 0x1AFFFFFF);
+        bg.setColor(selected ? 0x22FFC83D : 0x14FFFFFF);
+        bg.setCornerRadius(dp(16));
+        bg.setStroke(dp(selected ? 2 : 1), selected ? accent : 0x22FFFFFF);
         card.setBackground(bg);
-        card.setPadding(dp(10), dp(16), dp(10), dp(14));
-        if (card.getTag() instanceof Object[]) {
-            Object[] tag = (Object[]) card.getTag();
-            if (tag.length > 1 && tag[1] instanceof TextView) {
-                ((TextView) tag[1]).setTextColor(selected ? accent : 0xFFFFFFFF);
-            }
-        }
+        card.setPadding(dp(8), dp(12), dp(8), dp(10));
     }
 
     private void hideLyrxRoundPanel() {
@@ -15390,13 +15363,6 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 countView.updateShow(size > 1, true);
                 countView.set(switchingToIndex + 1, size);
             }
-            if (BuildVars.LOGS_ENABLED) {
-                FileLog.d("[richmedia] switchToIndex " + switchingToIndex
-                    + " currentAnimation=" + (currentAnimation != null)
-                    + " isVideo(switching)=" + pageBlocksAdapter.isVideo(switchingToIndex)
-                    + " isVideo(index)=" + pageBlocksAdapter.isVideo(index)
-                    + " hw=" + pageBlocksAdapter.isHardwarePlayer(index));
-            }
             if (currentAnimation != null || (!pageBlocksAdapter.isVideo(index) && pageBlocksAdapter.isHardwarePlayer(index))) {
                 galleryButton.setVisibility(View.GONE);
                 galleryGap.setVisibility(View.GONE);
@@ -17539,15 +17505,15 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                             }
                             if (photoEntry.isVideo) {
                                 if (videoEditedInfo != null) {
-                                    SendMessagesHelper.prepareSendingVideo(parentChatActivity.getAccountInstance(), photoEntry.path, videoEditedInfo, null, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.ttl, editingMessageObject, notify, scheduleDate, scheduleRepeatPeriod, forceDocument, photoEntry.hasSpoiler, photoEntry.caption, parentChatActivity.quickReplyShortcut, parentChatActivity.getQuickReplyId(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
+                                    SendMessagesHelper.prepareSendingVideo(parentChatActivity.getAccountInstance(), photoEntry.path, videoEditedInfo, null, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.ttl, editingMessageObject, notify, scheduleDate, scheduleRepeatPeriod, forceDocument, photoEntry.hasSpoiler, photoEntry.caption, parentChatActivity.getMessageChatSendParams(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
                                 } else {
-                                    SendMessagesHelper.prepareSendingVideo(parentChatActivity.getAccountInstance(), photoEntry.path, null, null, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.ttl, editingMessageObject, notify, scheduleDate, scheduleRepeatPeriod, forceDocument, photoEntry.hasSpoiler, photoEntry.caption, parentChatActivity.quickReplyShortcut, parentChatActivity.getQuickReplyId(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
+                                    SendMessagesHelper.prepareSendingVideo(parentChatActivity.getAccountInstance(), photoEntry.path, null, null, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.ttl, editingMessageObject, notify, scheduleDate, scheduleRepeatPeriod, forceDocument, photoEntry.hasSpoiler, photoEntry.caption, parentChatActivity.getMessageChatSendParams(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
                                 }
                             } else {
                                 if (photoEntry.imagePath != null) {
-                                    SendMessagesHelper.prepareSendingPhoto(parentChatActivity.getAccountInstance(), photoEntry.imagePath, photoEntry.thumbPath, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.stickers, null, photoEntry.ttl, editingMessageObject, videoEditedInfo, notify, scheduleDate, scheduleRepeatPeriod, 0, forceDocument, photoEntry.caption, parentChatActivity.quickReplyShortcut, parentChatActivity.getQuickReplyId(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
+                                    SendMessagesHelper.prepareSendingPhoto(parentChatActivity.getAccountInstance(), photoEntry.imagePath, photoEntry.thumbPath, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.stickers, null, photoEntry.ttl, editingMessageObject, videoEditedInfo, notify, scheduleDate, scheduleRepeatPeriod, 0, forceDocument, photoEntry.caption, parentChatActivity.getMessageChatSendParams(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
                                 } else if (photoEntry.path != null) {
-                                    SendMessagesHelper.prepareSendingPhoto(parentChatActivity.getAccountInstance(), photoEntry.path, photoEntry.thumbPath, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.stickers, null, photoEntry.ttl, editingMessageObject, videoEditedInfo, notify, scheduleDate, scheduleRepeatPeriod, 0, forceDocument, photoEntry.caption, parentChatActivity.quickReplyShortcut, parentChatActivity.getQuickReplyId(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
+                                    SendMessagesHelper.prepareSendingPhoto(parentChatActivity.getAccountInstance(), photoEntry.path, photoEntry.thumbPath, null, parentChatActivity.getDialogId(), replyToMsg, parentChatActivity.getThreadMessage(), null, replyQuote, photoEntry.entities, photoEntry.stickers, null, photoEntry.ttl, editingMessageObject, videoEditedInfo, notify, scheduleDate, scheduleRepeatPeriod, 0, forceDocument, photoEntry.caption, parentChatActivity.getMessageChatSendParams(), 0, 0, parentChatActivity.getSendMonoForumPeerId(), parentChatActivity.getSendMessageSuggestionParams());
                                 }
                             }
                         }
@@ -17795,14 +17761,6 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 }
             } else if (pageBlocksAdapter != null) {
                 currentAnimation = object.allowTakeAnimation ? object.imageReceiver.getAnimation() : null;
-                if (BuildVars.LOGS_ENABLED) {
-                    TLObject m = pageBlocksAdapter.getMedia(index);
-                    FileLog.d("[richmedia] openPhoto pageBlocks index=" + index
-                        + " isVideo=" + pageBlocksAdapter.isVideo(index)
-                        + " allowTake=" + object.allowTakeAnimation
-                        + " cellAnimation=" + (object.imageReceiver.getAnimation() != null)
-                        + " media=" + (m == null ? "null" : m.getClass().getSimpleName() + (m instanceof TLRPC.Document ? " id=" + ((TLRPC.Document) m).id + " mime=" + ((TLRPC.Document) m).mime_type + " attrs=" + attrsToString((TLRPC.Document) m) : "")));
-                }
                 if (currentAnimation != null && pageBlocksAdapter.isVideo(index)) {
                     object.imageReceiver.setAllowStartAnimation(false);
                     object.imageReceiver.stopAnimation();
