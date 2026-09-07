@@ -350,9 +350,6 @@ public class LocationController extends BaseController implements NotificationCe
     }
 
     private void broadcastLastKnownLocation(boolean cancelCurrent) {
-        if (lyrxSpoofing()) {
-            lastKnownLocation = lyrxFakeLocation();
-        }
         if (lastKnownLocation == null) {
             return;
         }
@@ -614,11 +611,6 @@ public class LocationController extends BaseController implements NotificationCe
     }
 
     private void setLastKnownLocation(Location location) {
-        if (lyrxSpoofing()) {
-            lastKnownLocation = lyrxFakeLocation();
-            AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.newLocationAvailable));
-            return;
-        }
         if (location != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && (SystemClock.elapsedRealtimeNanos() - location.getElapsedRealtimeNanos()) / 1000000000 > 60 * 5) {
             return;
         }
@@ -964,9 +956,6 @@ public class LocationController extends BaseController implements NotificationCe
     }
 
     public Location getLastKnownLocation() {
-        if (lyrxSpoofing()) {
-            return lyrxFakeLocation();
-        }
         return lastKnownLocation;
     }
 
