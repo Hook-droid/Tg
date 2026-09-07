@@ -70,14 +70,30 @@ jobs:
           if "lyrxrelease {" not in ss:
               ss = ss.replace("    signingConfigs {\n", lyrxblock, 1)
           if "signingConfig signingConfigs.lyrxrelease" not in ss:
-              ss = ss.replace(
-                  "        standalone {\n",
-                  "        standalone {\n            signingConfig signingConfigs.lyrxrelease\n",
-                  1)
-          ss = ss.replace(
-              "            signingConfig signingConfigs.lyrxrelease\n            debuggable false\n            jniDebuggable false\n            signingConfig signingConfigs.release\n            applicationIdSuffix \".web\"\n",
-              "            debuggable false\n            jniDebuggable false\n            signingConfig signingConfigs.lyrxrelease\n",
-              1)
+              lines_sa = ss.split("\n")
+              in_standalone = False
+              depth = 0
+              out_lines = []
+              for line in lines_sa:
+                  stripped = line.strip()
+                  if stripped.startswith("standalone {"):
+                      in_standalone = True
+                      depth = 1
+                      out_lines.append(line)
+                      continue
+                  if in_standalone:
+                      depth += line.count("{") - line.count("}")
+                      if stripped == "signingConfig signingConfigs.release":
+                          out_lines.append(line.replace("signingConfigs.release", "signingConfigs.lyrxrelease"))
+                          continue
+                      if stripped == "applicationIdSuffix \".web\"":
+                          continue
+                      out_lines.append(line)
+                      if depth <= 0:
+                          in_standalone = False
+                      continue
+                  out_lines.append(line)
+              ss = "\n".join(out_lines)
           import re as _re
           _open = ss.count("{")
           _close = ss.count("}")
@@ -231,8 +247,10 @@ jobs:
           cat > settings.gradle << 'SETEOF'
           include ':TMessagesProj'
           include ':TMessagesProj_AppStandalone'
+          include ':jlatexmath'
+          project(':jlatexmath').projectDir = file('TMessagesProj/lib/jlatexmath/jlatexmath')
           SETEOF
-          echo "settings.gradle sadelestirildi"
+          echo "settings.gradle sadelestirildi (jlatexmath korundu)"
           grep -n "APP_PACKAGE" gradle.properties
 
       - name: Sadece arm64 + tek is parcacigi
